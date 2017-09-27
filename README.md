@@ -1,7 +1,9 @@
-# git statTandy
+# Tandy
 
-####Auto-generated, RESTful, CRUDdy route handlers
+#### Auto-generated, RESTful, CRUDdy route handlers
 to be used with [hapi](https://github.com/hapijs/hapi) and its [Objection](https://github.com/Vincit/objection.js/) plugin, [Schwifty](https://github.com/BigRoomStudios/Schwifty/).
+
+A clone of the [Waterline](https://github.com/balderdashy/waterline)-based tool, [Bedwetter](https://github.com/devinivy/bedwetter).
 
 ---
 
