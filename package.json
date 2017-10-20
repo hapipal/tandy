@@ -1,6 +1,6 @@
 {
   "name": "tandy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "index.js",
   "scripts": {

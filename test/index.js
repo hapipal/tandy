@@ -16,7 +16,7 @@ const TestModels = require('./models');
 // Test shortcuts
 const lab = exports.lab = Lab.script();
 const expect = Code.expect;
-// const fail = Code.fail;
+const fail = Code.fail;
 const describe = lab.describe;
 const before = lab.before;
 const it = lab.it;
@@ -41,7 +41,8 @@ describe('Tandy', () => {
                 actAsUser: true,
                 userIdProperty: 'user.id',
                 userUrlPrefix: '/user',
-                userModel: 'users'
+                userModel: 'users',
+                prefix: ''
             }
         };
 
@@ -1232,6 +1233,102 @@ describe('Tandy', () => {
                 });
 
             });
+        });
+    });
+    it('Fetches all users after stripping route prefix', (done) => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            },
+            tandy: {
+                prefix: '/api'
+            }
+        });
+
+        getServer(config, (err, server) => {
+
+            if (err) {
+                return done(err);
+            }
+            server.register({ register: require('./plugin-api') }, {
+
+                routes: {
+                    prefix: '/api'
+                }
+            }, (err) => {
+
+                if (err) {
+                    throw err;
+                }
+
+                server.initialize((err) => {
+
+                    const knex = server.knex();
+                    knex.seed.run({ directory: 'test/seeds' }).then((data) => {
+
+                        if (err) {
+                            return done(err);
+                        }
+
+                        const options = {
+                            method: 'GET',
+                            url: '/api/users'
+                        };
+
+                        server.inject(options, (response) => {
+
+                            const result = response.result;
+
+                            expect(response.statusCode).to.equal(200);
+                            expect(result).to.be.an.array();
+                            expect(result.length).to.equal(4);
+                            done();
+                        });
+                    });
+
+                });
+            });
+        });
+    });
+    it('Forgets to set the route prefix up', (done) => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+
+        getServer(config, (err, server) => {
+
+            if (err) {
+                return done(err);
+            }
+            try {
+                server.register({ register: require('./plugin-api') }, {
+
+                    routes: {
+                        prefix: '/api'
+                    }
+                }, (err) => {
+
+                    if (err) {
+                        throw err;
+                    }
+                    fail();
+                });
+            }
+            catch (err) {
+                expect(err).to.be.an.error();
+                expect(err).to.be.an.error('Model `api` must exist to build route.');
+                done();
+            }
         });
     });
     it('Fetches all users without userModel', (done) => {
