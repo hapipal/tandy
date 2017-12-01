@@ -4,7 +4,7 @@
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "index.js",
   "scripts": {
-    "test": "lab -a code -L  -I '__core-js_shared__'",
+    "test": "lab -a code -L -t 100 -I '__core-js_shared__'",
     "lint": "eslint ."
   },
   "repository": {
