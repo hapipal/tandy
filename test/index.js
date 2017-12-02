@@ -1,18 +1,13 @@
 'use strict';
 
-// Load modules
-
 const Lab = require('lab');
-// const Code = require('code');
 const Hapi = require('hapi');
 const Joi = require('joi');
 const Hoek = require('hoek');
 const Boom = require('boom');
-
 const Schwifty = require('schwifty');
 const Tandy = require('..');
 const TestModels = require('./models');
-
 
 const { before, describe, expect, it } = exports.lab = Lab.script();
 
