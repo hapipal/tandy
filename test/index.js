@@ -13,6 +13,7 @@ const Schwifty = require('schwifty');
 const Tandy = require('..');
 const TestModels = require('./models');
 
+
 const { before, describe, expect, it } = exports.lab = Lab.script();
 
 describe('Tandy', () => {
@@ -35,7 +36,8 @@ describe('Tandy', () => {
                 actAsUser: true,
                 userIdProperty: 'user.id',
                 userUrlPrefix: '/user',
-                userModel: 'users'
+                userModel: 'users',
+                prefix: ''
             }
         };
 
@@ -991,6 +993,7 @@ describe('Tandy', () => {
         expect(result).to.be.an.array();
         expect(result.length).to.equal(4);
     });
+
     it('Fetches all users without userModel', async () => {
 
         const config = getOptions({

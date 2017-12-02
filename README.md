@@ -8,7 +8,7 @@ A clone of the [Waterline](https://github.com/balderdashy/waterline)-based tool,
 ---
 
 ## What it does
-Tandy registers route handlers based upon the `method` and `path` of your route.  It turns them into RESTful API endpoints that automatically interact with the model defined using Schwifty.  The route handler is based on one of eight tandys:
+Tandy registers route handlers based upon the `method` and `path` of your route.  It turns them into RESTful API endpoints that automatically interact with the model defined using Schwifty.  The route handler is based on one of eight Tandys:
 
 - `POST` is used for `create`, `add` when `add` is used to create a record then add it to a relation, and for `update`
 - `PATCH` is also used for `update`
@@ -17,7 +17,7 @@ Tandy registers route handlers based upon the `method` and `path` of your route.
 - `DELETE` is used for `destroy` and `remove` (remove a record from a relation)
 
 ## Tandy Patterns
-Suppose users are associated with comments via an Objection relation.  The user model associates comments in an relation named `comments`.  Here are some examples as to how the plugin will deduce which of the eight tandys to use, based upon route method and path definition.
+Suppose users are associated with comments via an Objection relation.  The user model associates comments in an relation named `comments`.  Here are some examples as to how the plugin will deduce which of the eight Tandys to use, based upon route method and path definition.
 
 * `GET /users` ↦ `find`
 
@@ -84,13 +84,18 @@ These options allow you to act on behalf of the authenticated user.  Typically t
 
 * `userUrlPrefix` (string, defaults `"/user"`).  Applies to `findOne`, `update`, `destroy`, `add`, `remove`, and `populate`.
 
-    When `actAsUser` is `true` this option takes effect.  This option works in tandem with `userModel`.  When a route path begins with `userUrlPrefix` (after any other inert prefix has been stripped via the `prefix` option), the URL is transformed to begin `/:userModel/:actingUserId` before matching for a tandy; it essentially sets the primary record to the acting user.
+    When `actAsUser` is `true` this option takes effect.  This option works in tandem with `userModel`.  When a route path begins with `userUrlPrefix` (after any other inert prefix has been stripped via the `prefix` option), the URL is transformed to begin `/:userModel/:actingUserId` before matching for a Tandy; it essentially sets the primary record to the acting user.
 
 * `userModel` (string, defaults `"users"`).  Applies to `findOne`, `update`, `destroy`, `add`, `remove`, and `populate`.
 
-    When `actAsUser` is `true` this option takes effect.  This option works in tandem with `userUrlPrefix`.  When a route path begins with `userUrlPrefix` (after any other inert prefix has been stripped via the `prefix` option), the URL is transformed to begin `/:userModel/:actingUserId` before matching for a tandy; it essentially sets the primary record to the acting user.  E.g., by default when `actAsUser` is enabled, route path `PUT /user/following/10` would internally be considered as `PUT /users/17/following/10`, which corresponds to the `add` tandy applied to the authenticated user.
+    When `actAsUser` is `true` this option takes effect.  This option works in tandem with `userUrlPrefix`.  When a route path begins with `userUrlPrefix` (after any other inert prefix has been stripped via the `prefix` option), the URL is transformed to begin `/:userModel/:actingUserId` before matching for a Tandy; it essentially sets the primary record to the acting user.  E.g., by default when `actAsUser` is enabled, route path `PUT /user/following/10` would internally be considered as `PUT /users/17/following/10`, which corresponds to the `add` Tandy applied to the authenticated user.
 
 ### Other Options
+
+* `prefix` (string).  Applies to `findOne`, `find`, `create`, `update`, `destroy`, `add`, `remove`, and `populate`.
+
+    Allows one to specify a prefix to the route path that will be ignored when determining which Tandy to apply.
+
 
 * `model` (string). Applies to `findOne`, `find`, `create`, `update`, `destroy`, `add`, `remove`, and `populate`.
 
@@ -120,7 +125,7 @@ These options allow you to act on behalf of the authenticated user.  Typically t
 Here's an (over)simplified example.
 
 ```javascript
-// Assume `server` is a hapi server with the tandy plugin registered.
+// Assume `server` is a hapi server with the Tandy plugin registered.
 // Models with identities "zoo" and "treat" exist via Schwifty.
 // zoos and treats are in a many-to-many correspondence with each other.
 // I suggest checking out ./test
