@@ -79,7 +79,7 @@ describe('Tandy', () => {
 
     before(() => {
 
-        require('pg'); // Just warm-up sqlite, so that the tests have consistent timing
+        require('sqlite3'); // Just warm-up sqlite, so that the tests have consistent timing
 
     });
 
@@ -95,7 +95,6 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
 
         server.route({
@@ -153,7 +152,6 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
 
         server.route({
@@ -189,9 +187,7 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
-
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
 
@@ -243,7 +239,6 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
         server.route({
             method: 'PATCH',
@@ -272,7 +267,6 @@ describe('Tandy', () => {
         };
 
         const response = await server.inject(options);
-        // const result = response.result;
         expect(response.statusCode).to.equal(500);
     });
     it('Updates a nonexistent user with PATCH', async () => {
@@ -287,11 +281,8 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
-
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         server.route({
@@ -336,10 +327,8 @@ describe('Tandy', () => {
             }
         });
         const server = await getServer(config);
-
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         server.route({
@@ -386,11 +375,8 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
-
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         try {
@@ -432,10 +418,8 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         try {
@@ -450,7 +434,6 @@ describe('Tandy', () => {
             });
         }
         catch (err) {
-
             expect(err).to.be.an.error();
             expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
         }
@@ -467,10 +450,8 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         try {
@@ -485,10 +466,8 @@ describe('Tandy', () => {
             });
         }
         catch (err) {
-
             expect(err).to.be.an.error();
             expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
-
         }
     });
     it('Creates a bad Tandy patern with DELETE', async () => {
@@ -520,7 +499,6 @@ describe('Tandy', () => {
             });
         }
         catch (err) {
-
             expect(err).to.be.an.error();
             expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
         }
@@ -555,10 +533,8 @@ describe('Tandy', () => {
             });
         }
         catch (err) {
-
             expect(err).to.be.an.error();
             expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
-
         }
     });
     it('Creates a bad Tandy patern with OPTIONS', async () => {
@@ -591,10 +567,8 @@ describe('Tandy', () => {
             });
         }
         catch (err) {
-
             expect(err).to.be.an.error();
             expect(err).to.be.an.error('Method isn\'t a Tandy.  Must be POST, GET, DELETE, PUT, or PATCH.');
-
         }
     });
     it('Creates a bad Tandy patern with PATCH', async () => {
@@ -609,10 +583,8 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         try {
@@ -638,10 +610,8 @@ describe('Tandy', () => {
             });
         }
         catch (err) {
-
             expect(err).to.be.an.error();
             expect(err).to.be.an.error('This patch route does not match a Tandy pattern.');
-
         }
     });
     it('Creates a bad Tandy patern with PUT and wrong number params', async () => {
@@ -658,7 +628,6 @@ describe('Tandy', () => {
 
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         try {
@@ -684,10 +653,8 @@ describe('Tandy', () => {
             });
         }
         catch (err) {
-
             expect(err).to.be.an.error();
             expect(err).to.be.an.error('This put route does not match a Tandy pattern.');
-
         }
     });
     it('Creates a bad Tandy patern with PUT', async () => {
@@ -923,10 +890,8 @@ describe('Tandy', () => {
         });
 
         const server = await getServer(config);
-
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         server.route({
@@ -947,7 +912,6 @@ describe('Tandy', () => {
         expect(response.statusCode).to.equal(200);
         expect(result).to.be.an.array();
         expect(result.length).to.equal(4);
-
     });
     it('Fetches all users without userUrlPrefix', async () => {
 
@@ -963,10 +927,8 @@ describe('Tandy', () => {
             }
         });
         const server = await getServer(config);
-
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         server.route({
@@ -981,7 +943,6 @@ describe('Tandy', () => {
         };
 
         const response = await server.inject(options);
-
         const result = response.result;
 
         expect(response.statusCode).to.equal(200);
@@ -1006,7 +967,6 @@ describe('Tandy', () => {
 
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
         await knex.seed.run({ directory: 'test/seeds' });
 
         server.route({
@@ -1037,6 +997,7 @@ describe('Tandy', () => {
                 return 'foo';
             }
         };
+
         const config = getOptions({
             migrateOnStart: false,
             schwifty: {
@@ -1047,6 +1008,7 @@ describe('Tandy', () => {
         const server = await getServer(config);
 
         await server.initialize();
+
         server.route({
             method: 'GET',
             path: '/users',
@@ -1057,12 +1019,9 @@ describe('Tandy', () => {
             method: 'GET',
             url: '/users'
         };
-        try {
-            await server.inject(options);
-        }
-        catch (err) {
-            expect(err).to.exist();
-        }
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
     it('Generates an Objection error when GETting a count', async () => {
 
@@ -1094,12 +1053,9 @@ describe('Tandy', () => {
             method: 'GET',
             url: '/users/count'
         };
-        try {
-            await server.inject(options);
-        }
-        catch (err) {
-            expect(err).to.exist();
-        }
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
     it('Fetches count of users', async () => {
 
@@ -1112,10 +1068,8 @@ describe('Tandy', () => {
             }
         });
         const server = await getServer(config);
-
         await server.initialize();
         const knex = server.knex();
-
         await knex.seed.run({ directory: 'test/seeds' });
 
         server.route({
@@ -1566,7 +1520,6 @@ describe('Tandy', () => {
         catch (e) {
             expect(e).to.exist();
             expect(e).to.be.an.error('Option userUrlPrefix should only have a string or a falsy value.');
-
         }
     });
     it('Fetches more than default limit number of users using query param', async () => {
@@ -1958,7 +1911,6 @@ describe('Tandy', () => {
             });
         }
         catch (e) {
-
             expect(e).to.exist();
             expect(e).to.be.an.error('Number of path segments should be between 1 and 4.');
 
@@ -2560,7 +2512,6 @@ describe('Tandy', () => {
         }
         catch (e) {
             expect(e).to.exist();
-
         }
     });
     it('Deletes a specific user', async () => {
