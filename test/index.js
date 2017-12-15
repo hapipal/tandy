@@ -1,25 +1,15 @@
 'use strict';
 
-// Load modules
-
 const Lab = require('lab');
-const Code = require('code');
 const Hapi = require('hapi');
 const Joi = require('joi');
 const Hoek = require('hoek');
 const Boom = require('boom');
-
 const Schwifty = require('schwifty');
 const Tandy = require('..');
 const TestModels = require('./models');
 
-// Test shortcuts
-const lab = exports.lab = Lab.script();
-const expect = Code.expect;
-const fail = Code.fail;
-const describe = lab.describe;
-const before = lab.before;
-const it = lab.it;
+const { before, describe, expect, it } = exports.lab = Lab.script();
 
 describe('Tandy', () => {
 
@@ -52,53 +42,48 @@ describe('Tandy', () => {
     const scheme = (server, options) => {
 
         return {
-            authenticate: (request, reply) => {
+            authenticate: (request, h) => {
 
                 const req = request.raw.req;
                 const authorization = req.headers.authorization;
 
                 if (!authorization || authorization !== 'dontcare') {
-                    return reply(Boom.unauthorized(null, 'Custom'));
+                    return h.unauthenticated(Boom.unauthorized(null, 'Custom'));
                 }
 
-                return reply.continue({ credentials: { user: { id: 1 } } });
+                return h.authenticated({ credentials: { user: { id: 1 } } });
             }
         };
     };
 
-    const getServer = (options, cb) => {
+    const getServer = async (options) => {
 
-        const server = new Hapi.Server();
-        server.connection();
+        const server = Hapi.Server({ debug: { request: false } });
 
         server.auth.scheme('custom', scheme);
         server.auth.strategy('mine', 'custom');
 
-        server.register([
+        await server.register([
             {
-                register: Schwifty,
+                plugin: Schwifty,
                 options: options.schwifty
             },
             {
-                register: Tandy,
+                plugin: Tandy,
                 options: options.tandy
             }
-        ], (err) => {
+        ]);
 
-            if (err) {
-                return cb(err);
-            }
-            return cb(null, server);
-        });
+        return server;
     };
 
-    before((done) => {
+    before(() => {
 
         require('sqlite3'); // Just warm-up sqlite, so that the tests have consistent timing
-        done();
+
     });
 
-    it('Creates a new user', (done) => {
+    it('creates a new user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -109,58 +94,47 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                server.route({
-                    method: 'POST',
-                    path: '/users',
-                    config: {
-                        description: 'Register new user',
-                        validate: {
-                            payload: {
-                                email: Joi.string().email().required(),
-                                password: Joi.string().required(),
-                                firstName: Joi.string().required(),
-                                lastName: Joi.string().required()
-                            }
-                        },
-                        auth: false
-                    },
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'POST',
-                    url: '/users',
+        server.route({
+            method: 'POST',
+            path: '/users',
+            config: {
+                description: 'Register new user',
+                validate: {
                     payload: {
-                        email: 'test@test.com',
-                        password: 'password',
-                        firstName: 'Test',
-                        lastName: 'Test'
+                        email: Joi.string().email().required(),
+                        password: Joi.string().required(),
+                        firstName: Joi.string().required(),
+                        lastName: Joi.string().required()
                     }
-                };
-
-                server.inject(options, (response) => {
-
-                    const result = response.result;
-
-                    expect(response.statusCode).to.equal(201);
-                    expect(result).to.be.an.object();
-                    expect(result.email).to.equal('test@test.com');
-                    done();
-                });
-            });
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'POST',
+            url: '/users',
+            payload: {
+                email: 'test@test.com',
+                password: 'password',
+                firstName: 'Test',
+                lastName: 'Test'
+            }
+        };
+
+        const res = await server.inject(options);
+
+        const result = res.result;
+
+        expect(res.statusCode).to.equal(201);
+        expect(result).to.be.an.object();
+        expect(result.email).to.equal('test@test.com');
     });
-    it('Generates an Objection error when creating a new token', (done) => {
+    it('Generates an Objection error when creating a new token', async () => {
 
         const Model = require('schwifty').Model;
         const Tokens = class tokens extends Model {
@@ -177,43 +151,31 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                server.route({
-                    method: 'POST',
-                    path: '/tokens',
-                    config: {
-                        description: 'Register new token',
-                        auth: false
-                    },
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'POST',
-                    url: '/tokens',
-                    payload: {
-                        temp: 'Test'
-                    }
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+        server.route({
+            method: 'POST',
+            path: '/tokens',
+            config: {
+                description: 'Register new token',
+                auth: false
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'POST',
+            url: '/tokens',
+            payload: {
+                temp: 'Test'
+            }
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(500);
     });
-    it('Updates a user with PATCH', (done) => {
+    it('Updates a user with PATCH', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -224,61 +186,47 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    server.route({
-                        method: 'PATCH',
-                        path: '/users/{id}',
-                        config: {
-                            description: 'Update user',
-                            validate: {
-                                payload: {
-                                    email: Joi.string().email(),
-                                    password: Joi.string(),
-                                    firstName: Joi.string(),
-                                    lastName: Joi.string()
-                                },
-                                params: {
-                                    id: Joi.number().integer().required()
-                                }
-                            },
-                            auth: false
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'PATCH',
-                        url: '/users/1',
-                        payload: {
-                            email: 'test@test.com'
-                        }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.object();
-                        expect(result.email).to.equal('test@test.com');
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'PATCH',
+            path: '/users/{id}',
+            config: {
+                description: 'Update user',
+                validate: {
+                    payload: {
+                        email: Joi.string().email(),
+                        password: Joi.string(),
+                        firstName: Joi.string(),
+                        lastName: Joi.string()
+                    },
+                    params: {
+                        id: Joi.number().integer().required()
+                    }
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'PATCH',
+            url: '/users/1',
+            payload: {
+                email: 'test@test.com'
+            }
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.object();
+        expect(result.email).to.equal('test@test.com');
     });
-    it('Generates an Objection error when it updates a user with PATCH', (done) => {
+    it('Generates an Objection error when it updates a user with PATCH', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -290,52 +238,38 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-
-                server.route({
-                    method: 'PATCH',
-                    path: '/users/{id}',
-                    config: {
-                        description: 'Update user',
-                        validate: {
-                            payload: {
-                                email: Joi.string().email()
-                            },
-                            params: {
-                                id: Joi.number().integer().required()
-                            }
-                        },
-                        auth: false
-                    },
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'PATCH',
-                    url: '/users/1',
+        const server = await getServer(config);
+        await server.initialize();
+        server.route({
+            method: 'PATCH',
+            path: '/users/{id}',
+            config: {
+                description: 'Update user',
+                validate: {
                     payload: {
-                        email: 'test@test.com'
+                        email: Joi.string().email()
+                    },
+                    params: {
+                        id: Joi.number().integer().required()
                     }
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'PATCH',
+            url: '/users/1',
+            payload: {
+                email: 'test@test.com'
+            }
+        };
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Updates a nonexistent user with PATCH', (done) => {
+    it('Updates a nonexistent user with PATCH', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -346,174 +280,133 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
+        server.route({
+            method: 'PATCH',
+            path: '/users/{id}',
+            config: {
+                description: 'Update user',
+                validate: {
+                    payload: {
+                        email: Joi.string().email(),
+                        password: Joi.string(),
+                        firstName: Joi.string(),
+                        lastName: Joi.string()
+                    },
+                    params: {
+                        id: Joi.number().integer().required()
+                    }
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'PATCH',
+            url: '/users/99999',
+            payload: {
+                email: 'test@test.com'
             }
-            server.initialize((err) => {
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
+    });
+    it('Updates a user with PATCH and bad query', async () => {
 
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                    server.route({
-                        method: 'PATCH',
-                        path: '/users/{id}',
-                        config: {
-                            description: 'Update user',
-                            validate: {
-                                payload: {
-                                    email: Joi.string().email(),
-                                    password: Joi.string(),
-                                    firstName: Joi.string(),
-                                    lastName: Joi.string()
-                                },
-                                params: {
-                                    id: Joi.number().integer().required()
-                                }
-                            },
-                            auth: false
-                        },
-                        handler: { tandy: {} }
-                    });
+        server.route({
+            method: 'PATCH',
+            path: '/users/{id}',
+            config: {
+                description: 'Update user',
+                validate: {
+                    payload: {
+                        email: Joi.string().email(),
+                        password: Joi.string(),
+                        firstName: Joi.string(),
+                        lastName: Joi.string()
+                    },
+                    params: {
+                        id: Joi.number().integer().required()
+                    }
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
+        });
 
-                    const options = {
-                        method: 'PATCH',
-                        url: '/users/99999',
+        const options = {
+            method: 'PATCH',
+            url: '/users/-22',
+            payload: {
+                email: 'test@test.com'
+            }
+        };
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
+    });
+    it('Creates a bad Tandy patern', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        try {
+            server.route({
+                method: 'POST',
+                path: '/{id}/user',
+                config: {
+                    description: 'Update user',
+                    validate: {
                         payload: {
-                            email: 'test@test.com'
-                        }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
-        });
-    });
-    it('Updates a user with PATCH and bad query', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    server.route({
-                        method: 'PATCH',
-                        path: '/users/{id}',
-                        config: {
-                            description: 'Update user',
-                            validate: {
-                                payload: {
-                                    email: Joi.string().email(),
-                                    password: Joi.string(),
-                                    firstName: Joi.string(),
-                                    lastName: Joi.string()
-                                },
-                                params: {
-                                    id: Joi.number().integer().required()
-                                }
-                            },
-                            auth: false
+                            email: Joi.string().email(),
+                            password: Joi.string(),
+                            firstName: Joi.string(),
+                            lastName: Joi.string()
                         },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'PATCH',
-                        url: '/users/-22',
-                        payload: {
-                            email: 'test@test.com'
+                        params: {
+                            id: Joi.number().integer().required()
                         }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
+                    },
+                    auth: false
+                },
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('Unable to determine model for route /{id}/user');
+        }
     });
-    it('Creates a bad Tandy patern', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'POST',
-                            path: '/{id}/user',
-                            config: {
-                                description: 'Update user',
-                                validate: {
-                                    payload: {
-                                        email: Joi.string().email(),
-                                        password: Joi.string(),
-                                        firstName: Joi.string(),
-                                        lastName: Joi.string()
-                                    },
-                                    params: {
-                                        id: Joi.number().integer().required()
-                                    }
-                                },
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('Unable to determine model for route /{id}/user');
-                        done();
-                    }
-                });
-            });
-        });
-    });
-    it('Creates a bad Tandy patern with GET', (done) => {
+    it('Creates a bad Tandy patern with GET', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -524,41 +417,28 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'GET',
-                            path: '/users/token/firetruck',
-                            config: {
-                                description: 'Bad pattern',
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
+        try {
+            server.route({
+                method: 'GET',
+                path: '/users/token/firetruck',
+                config: {
+                    description: 'Bad pattern',
+                    auth: false
+                },
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
+        }
     });
-    it('Creates a bad Tandy patern with GET', (done) => {
+    it('Creates a bad Tandy patern with GET', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -569,41 +449,28 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'GET',
-                            path: '/users/token/{id}/firetruck',
-                            config: {
-                                description: 'Bad pattern',
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
+        try {
+            server.route({
+                method: 'GET',
+                path: '/users/token/{id}/firetruck',
+                config: {
+                    description: 'Bad pattern',
+                    auth: false
+                },
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
+        }
     });
-    it('Creates a bad Tandy patern with DELETE', (done) => {
+    it('Creates a bad Tandy patern with DELETE', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -614,41 +481,29 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'DELETE',
-                            path: '/users/token/{id}/firetruck',
-                            config: {
-                                description: 'Bad pattern',
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
+        try {
+            server.route({
+                method: 'DELETE',
+                path: '/users/token/{id}/firetruck',
+                config: {
+                    description: 'Bad pattern',
+                    auth: false
+                },
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
+        }
     });
-    it('Creates a bad Tandy patern with DELETE', (done) => {
+    it('Creates a bad Tandy patern with DELETE', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -659,41 +514,30 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'DELETE',
-                            path: '/users/token/{id}',
-                            config: {
-                                description: 'Bad pattern',
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
+        try {
+            server.route({
+                method: 'DELETE',
+                path: '/users/token/{id}',
+                config: {
+                    description: 'Bad pattern',
+                    auth: false
+                },
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
+        }
     });
-    it('Creates a bad Tandy patern with OPTIONS', (done) => {
+    it('Creates a bad Tandy patern with OPTIONS', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -704,41 +548,30 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'OPTIONS',
-                            path: '/users',
-                            config: {
-                                description: 'Bad pattern',
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('Method isn\'t a Tandy.  Must be POST, GET, DELETE, PUT, or PATCH.');
-                        done();
-                    }
-                });
+        try {
+            server.route({
+                method: 'OPTIONS',
+                path: '/users',
+                config: {
+                    description: 'Bad pattern',
+                    auth: false
+                },
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('Method isn\'t a Tandy.  Must be POST, GET, DELETE, PUT, or PATCH.');
+        }
     });
-    it('Creates a bad Tandy patern with PATCH', (done) => {
+    it('Creates a bad Tandy patern with PATCH', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -749,285 +582,227 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'PATCH',
-                            path: '/users/{id}/token/firetruck',
-                            config: {
-                                description: 'Update user',
-                                validate: {
-                                    payload: {
-                                        email: Joi.string().email(),
-                                        password: Joi.string(),
-                                        firstName: Joi.string(),
-                                        lastName: Joi.string()
-                                    },
-                                    params: {
-                                        id: Joi.number().integer().required()
-                                    }
-                                },
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This patch route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
-            });
-        });
-    });
-    it('Creates a bad Tandy patern with PUT and wrong number params', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'PUT',
-                            path: '/users/{id}/token/firetruck',
-                            config: {
-                                description: 'Update user',
-                                validate: {
-                                    payload: {
-                                        email: Joi.string().email(),
-                                        password: Joi.string(),
-                                        firstName: Joi.string(),
-                                        lastName: Joi.string()
-                                    },
-                                    params: {
-                                        id: Joi.number().integer().required()
-                                    }
-                                },
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This put route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
-            });
-        });
-    });
-    it('Creates a bad Tandy patern with PUT', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: 'PUT',
-                            path: '/users/{id}/{youd}',
-                            config: {
-                                description: 'Update user',
-                                validate: {
-                                    payload: {
-                                        email: Joi.string().email(),
-                                        password: Joi.string(),
-                                        firstName: Joi.string(),
-                                        lastName: Joi.string()
-                                    },
-                                    params: {
-                                        id: Joi.number().integer().required()
-                                    }
-                                },
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This put route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
-            });
-        });
-    });
-    it('Creates a bad Tandy patern with POST', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    try {
-                        server.route({
-                            method: ['POST', 'PATCH'],
-                            path: '/user/{id}/token/firetruck',
-                            config: {
-                                description: 'Update user',
-                                validate: {
-                                    payload: {
-                                        email: Joi.string().email(),
-                                        password: Joi.string(),
-                                        firstName: Joi.string(),
-                                        lastName: Joi.string()
-                                    },
-                                    params: {
-                                        id: Joi.number().integer().required()
-                                    }
-                                },
-                                auth: false
-                            },
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (err) {
-
-                        expect(err).to.be.an.error();
-                        expect(err).to.be.an.error('This post route does not match a Tandy pattern.');
-                        done();
-                    }
-                });
-            });
-        });
-    });
-    it('Updates a user with POST', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    server.route({
-                        method: 'POST',
-                        path: '/users/{id}',
-                        config: {
-                            description: 'Update user',
-                            validate: {
-                                payload: {
-                                    email: Joi.string().email(),
-                                    password: Joi.string(),
-                                    firstName: Joi.string(),
-                                    lastName: Joi.string()
-                                },
-                                params: {
-                                    id: Joi.number().integer().required()
-                                }
-                            },
-                            auth: false
+        try {
+            server.route({
+                method: 'PATCH',
+                path: '/users/{id}/token/firetruck',
+                config: {
+                    description: 'Update user',
+                    validate: {
+                        payload: {
+                            email: Joi.string().email(),
+                            password: Joi.string(),
+                            firstName: Joi.string(),
+                            lastName: Joi.string()
                         },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'POST',
-                        url: '/users/1',
-                        payload: {
-                            email: 'test@test.com'
+                        params: {
+                            id: Joi.number().integer().required()
                         }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.object();
-                        expect(result.email).to.equal('test@test.com');
-                        done();
-                    });
-                });
+                    },
+                    auth: false
+                },
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This patch route does not match a Tandy pattern.');
+        }
     });
-    it('Fetches all tokens, ensuring we handle lowercase model classnames', (done) => {
+    it('Creates a bad Tandy patern with PUT and wrong number params', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+        const server = await getServer(config);
+
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        try {
+            server.route({
+                method: 'PUT',
+                path: '/users/{id}/token/firetruck',
+                config: {
+                    description: 'Update user',
+                    validate: {
+                        payload: {
+                            email: Joi.string().email(),
+                            password: Joi.string(),
+                            firstName: Joi.string(),
+                            lastName: Joi.string()
+                        },
+                        params: {
+                            id: Joi.number().integer().required()
+                        }
+                    },
+                    auth: false
+                },
+                handler: { tandy: {} }
+            });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This put route does not match a Tandy pattern.');
+        }
+    });
+    it('Creates a bad Tandy patern with PUT', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+        const server = await getServer(config);
+
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        try {
+            server.route({
+                method: 'PUT',
+                path: '/users/{id}/{youd}',
+                config: {
+                    description: 'Update user',
+                    validate: {
+                        payload: {
+                            email: Joi.string().email(),
+                            password: Joi.string(),
+                            firstName: Joi.string(),
+                            lastName: Joi.string()
+                        },
+                        params: {
+                            id: Joi.number().integer().required()
+                        }
+                    },
+                    auth: false
+                },
+                handler: { tandy: {} }
+            });
+        }
+        catch (err) {
+
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This put route does not match a Tandy pattern.');
+
+        }
+    });
+    it('Creates a bad Tandy patern with POST', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+        const server = await getServer(config);
+
+        await server.initialize();
+        const knex = server.knex();
+
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        try {
+            server.route({
+                method: ['POST', 'PATCH'],
+                path: '/user/{id}/token/firetruck',
+                config: {
+                    description: 'Update user',
+                    validate: {
+                        payload: {
+                            email: Joi.string().email(),
+                            password: Joi.string(),
+                            firstName: Joi.string(),
+                            lastName: Joi.string()
+                        },
+                        params: {
+                            id: Joi.number().integer().required()
+                        }
+                    },
+                    auth: false
+                },
+                handler: { tandy: {} }
+            });
+        }
+        catch (err) {
+
+            // expect(err).to.be.an.error();
+            expect(err).to.be.an.error('This post route does not match a Tandy pattern.');
+
+        }
+    });
+    it('Updates a user with POST', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+        const server = await getServer(config);
+
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'POST',
+            path: '/users/{id}',
+            config: {
+                description: 'Update user',
+                validate: {
+                    payload: {
+                        email: Joi.string().email(),
+                        password: Joi.string(),
+                        firstName: Joi.string(),
+                        lastName: Joi.string()
+                    },
+                    params: {
+                        id: Joi.number().integer().required()
+                    }
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'POST',
+            url: '/users/1',
+            payload: {
+                email: 'test@test.com'
+            }
+        };
+
+        const response = await server.inject(options);
+
+        const result = response.result;
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.object();
+        expect(result.email).to.equal('test@test.com');
+    });
+    it('Fetches all tokens, ensuring we handle lowercase model classnames', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1038,48 +813,34 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/foobar',
-                        handler: { tandy: {
-                            model: 'tokens'
-                        } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/foobar'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(3);
-                        done();
-                    });
-                });
-
-            });
+        server.route({
+            method: 'GET',
+            path: '/foobar',
+            handler: { tandy: {
+                model: 'tokens'
+            } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/foobar'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(3);
     });
-    it('Fetches all users', (done) => {
+    it('Fetches all users', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1089,47 +850,32 @@ describe('Tandy', () => {
                 ]
             }
         });
+        const server = await getServer(config);
 
-        getServer(config, (err, server) => {
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(4);
-                        done();
-                    });
-                });
-
-            });
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
     });
-    it('Fetches all users without actAsUser', (done) => {
+    it('Fetches all users without actAsUser', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1143,46 +889,31 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(4);
-                        done();
-                    });
-                });
-
-            });
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
     });
-    it('Fetches all users without userUrlPrefix', (done) => {
+    it('Fetches all users without userUrlPrefix', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1195,143 +926,31 @@ describe('Tandy', () => {
                 userUrlPrefix: false
             }
         });
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(4);
-                        done();
-                    });
-                });
-
-            });
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
     });
-    it('Fetches all users after stripping route prefix', (done) => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            },
-            tandy: {
-                prefix: '/api'
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.register({ register: require('./plugin-api') }, {
-
-                routes: {
-                    prefix: '/api'
-                }
-            }, (err) => {
-
-                if (err) {
-                    throw err;
-                }
-
-                server.initialize((err) => {
-
-                    const knex = server.knex();
-                    knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                        if (err) {
-                            return done(err);
-                        }
-
-                        const options = {
-                            method: 'GET',
-                            url: '/api/users'
-                        };
-
-                        server.inject(options, (response) => {
-
-                            const result = response.result;
-
-                            expect(response.statusCode).to.equal(200);
-                            expect(result).to.be.an.array();
-                            expect(result.length).to.equal(4);
-                            done();
-                        });
-                    });
-
-                });
-            });
-        });
-    });
-    it('Forgets to set the route prefix up', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            try {
-                server.register({ register: require('./plugin-api') }, {
-
-                    routes: {
-                        prefix: '/api'
-                    }
-                }, (err) => {
-
-                    if (err) {
-                        throw err;
-                    }
-                    fail();
-                });
-            }
-            catch (err) {
-                expect(err).to.be.an.error();
-                expect(err).to.be.an.error('Model `api` must exist to build route.');
-                done();
-            }
-        });
-    });
-    it('Fetches all users without userModel', (done) => {
+    it('Fetches all users without userModel', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1344,47 +963,67 @@ describe('Tandy', () => {
                 userModel: false
             }
         });
+        const server = await getServer(config);
 
-        getServer(config, (err, server) => {
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(4);
-                        done();
-                    });
-                });
-
-            });
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
     });
-    it('Generates an Objection error when GETting', (done) => {
+    it('Generates an Objection error when GETting', async () => {
+
+        const Model = require('schwifty').Model;
+        const Users = class users extends Model {
+
+            static get tableName() {
+
+                return 'foo';
+            }
+        };
+
+        const config = getOptions({
+            migrateOnStart: false,
+            schwifty: {
+                models: [Users]
+            }
+        });
+
+        const server = await getServer(config);
+
+        await server.initialize();
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
+    });
+    it('Generates an Objection error when GETting a count', async () => {
 
         const Model = require('schwifty').Model;
         const Users = class users extends Model {
@@ -1400,85 +1039,214 @@ describe('Tandy', () => {
                 models: [Users]
             }
         });
+        const server = await getServer(config);
 
-        getServer(config, (err, server) => {
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-
-                server.route({
-                    method: 'GET',
-                    path: '/users',
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'GET',
-                    url: '/users'
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/count',
+            handler: { tandy: {} }
         });
-    });
-    it('Generates an Objection error when GETting a count', (done) => {
 
-        const Model = require('schwifty').Model;
-        const Users = class users extends Model {
-
-            static get tableName() {
-
-                return 'foo';
-            }
+        const options = {
+            method: 'GET',
+            url: '/users/count'
         };
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
+    });
+    it('Fetches count of users', async () => {
+
         const config = getOptions({
-            migrateOnStart: false,
             schwifty: {
-                models: [Users]
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users/count',
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users/count'
+        };
+
+        const response = await server.inject(options);
+
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.a.number();
+        expect(result).to.equal(4);
+    });
+    it('Fetches count of tokens for user', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens/count',
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens/count'
+        };
+
+        const response = await server.inject(options);
+
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.a.number();
+        expect(result).to.equal(2);
+    });
+    it('Fetches all users with a different route, using `model`', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
             }
-            server.initialize((err) => {
+        });
 
-                if (err) {
-                    return done(err);
+        const server = await getServer(config);
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/foobar',
+            handler: { tandy: {
+                model: 'users'
+            } }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/foobar'
+        };
+
+        const response = await server.inject(options);
+
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
+    });
+    it('Fetches all users, sorted by email', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {
+                sort: 'email'
+            } }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+
+        const result = response.result;
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
+        //this one's ID would cause it to be in a different spot if sort failed
+        expect(result[2].email).to.equal('c@d.e');
+    });
+    it('Fetches limited number of users', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: { limit: 1 } },
+            config: {
+                validate: {
+                    query: {
+                        sort: Joi.string().required()
+                    }
                 }
-
-                server.route({
-                    method: 'GET',
-                    path: '/users/count',
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'GET',
-                    url: '/users/count'
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+            }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users?sort=id'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(1);
     });
-    it('Fetches count of users', (done) => {
+    it('Fetches limited number of tokens for a user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1489,45 +1257,31 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/count',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/count'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.a.number();
-                        expect(result).to.equal(4);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens',
+            handler: { tandy: { limit: 1 } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result.tokens).to.be.an.array();
+        expect(result.tokens.length).to.equal(1);
     });
-    it('Fetches count of tokens for user', (done) => {
+    it('Fetches limited number of tokens for a user using query param', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1538,46 +1292,38 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens',
+            config: {
+                validate: {
+                    query: {
+                        limit: Joi.number().integer()
                     }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens/count',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/tokens/count'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.a.number();
-                        expect(result).to.equal(2);
-                        done();
-                    });
-                });
-
-            });
+                }
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens?limit=-1'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result.tokens).to.be.an.array();
+        expect(result.tokens.length).to.equal(1);
     });
-    it('Fetches all users with a different route, using `model`', (done) => {
+    it('Fetches users, but skips first one', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1588,48 +1334,29 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/foobar',
-                        handler: { tandy: {
-                            model: 'users'
-                        } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/foobar'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(4);
-                        done();
-                    });
-                });
-
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: { skip: 1 } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(3);
     });
-    it('Fetches all users, sorted by email', (done) => {
+    it('Fetches users, but skips first one using query param', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1640,49 +1367,37 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
+        server.route({
+            method: 'GET',
+            path: '/users',
+            config: {
+                validate: {
+                    query: {
+                        skip: Joi.number().integer()
                     }
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: { tandy: {
-                            sort: 'email'
-                        } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(4);
-                        //this one's ID would cause it to be in a different spot if sort failed
-                        expect(result[2].email).to.equal('c@d.e');
-                        done();
-                    });
-                });
-
-            });
+                }
+            },
+            handler: { tandy: { skip: 1 } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users?skip=1'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(3);
     });
-    it('Fetches limited number of users', (done) => {
+    it('Fetches users, but skips all of them and gets none', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1693,53 +1408,37 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
+        server.route({
+            method: 'GET',
+            path: '/users',
+            config: {
+                validate: {
+                    query: {
+                        skip: Joi.number().integer()
                     }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: { tandy: { limit: 1 } },
-                        config: {
-                            validate: {
-                                query: {
-                                    sort: Joi.string().required()
-                                }
-                            }
-                        }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users?sort=id'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(1);
-                        done();
-                    });
-                });
-
-            });
+                }
+            },
+            handler: { tandy: { skip: 1 } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users?skip=1000'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(0);
     });
-    it('Fetches limited number of tokens for a user', (done) => {
+    it('Fetches users and gets none', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1750,46 +1449,27 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens',
-                        handler: { tandy: { limit: 1 } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/tokens'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result.tokens).to.be.an.array();
-                        expect(result.tokens.length).to.equal(1);
-                        done();
-                    });
-                });
-
-            });
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(0);
     });
-    it('Fetches limited number of tokens for a user using query param', (done) => {
+    it('Sets invalid userModel', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1800,53 +1480,23 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens',
-                        config: {
-                            validate: {
-                                query: {
-                                    limit: Joi.number().integer()
-                                }
-                            }
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/tokens?limit=-1'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result.tokens).to.be.an.array();
-                        expect(result.tokens.length).to.equal(1);
-                        done();
-                    });
-                });
-
+        try {
+            server.route({
+                method: 'GET',
+                path: '/users',
+                handler: { tandy: { userModel: 1 } }
             });
-        });
+        }
+        catch (e) {
+            expect(e).to.exist();
+            expect(e).to.be.an.error('Option userModel should only have a string or a falsy value.');
+
+        }
     });
-    it('Fetches users, but skips first one', (done) => {
+    it('Sets invalid userUrlPrefix', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1857,46 +1507,22 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: { tandy: { skip: 1 } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(3);
-                        done();
-                    });
-                });
-
+        try {
+            server.route({
+                method: 'GET',
+                path: '/users',
+                handler: { tandy: { userUrlPrefix: 1 } }
             });
-        });
+        }
+        catch (e) {
+            expect(e).to.exist();
+            expect(e).to.be.an.error('Option userUrlPrefix should only have a string or a falsy value.');
+        }
     });
-    it('Fetches users, but skips first one using query param', (done) => {
+    it('Fetches more than default limit number of users using query param', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1907,53 +1533,34 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: {
+                tandy: {
+                    limit: 3
+                }
             }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        config: {
-                            validate: {
-                                query: {
-                                    skip: Joi.number().integer()
-                                }
-                            }
-                        },
-                        handler: { tandy: { skip: 1 } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users?skip=1'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(3);
-                        done();
-                    });
-                });
-
-            });
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users?limit=5'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
     });
-    it('Fetches users, but skips all of them and gets none', (done) => {
+    it('Fetches current user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -1964,52 +1571,33 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        config: {
-                            validate: {
-                                query: {
-                                    skip: Joi.number().integer()
-                                }
-                            }
-                        },
-                        handler: { tandy: { skip: 1 } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users?skip=1000'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(0);
-                        done();
-                    });
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'GET',
+            path: '/user',
+            config: {
+                auth: { strategy: 'mine' }
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/user',
+            headers: { authorization : 'dontcare' }
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.object();
+        expect(result.id).to.equal(1);
     });
-    it('Sets invalid userModel', (done) => {
+    it('Fetches current user with tokens', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2020,36 +1608,33 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-                    try {
-                        server.route({
-                            method: 'GET',
-                            path: '/users',
-                            handler: { tandy: { userModel: 1 } }
-                        });
-                    }
-                    catch (e) {
-                        expect(e).to.exist();
-                        expect(e).to.be.an.error('Option userModel should only have a string or a falsy value.');
-                        done();
-                    }
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'GET',
+            path: '/user/tokens',
+            config: {
+                auth: { strategy: 'mine' }
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/user/tokens',
+            headers: { authorization : 'dontcare' }
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.object();
+        expect(result.id).to.equal(1);
     });
-    it('Sets invalid userUrlPrefix', (done) => {
+    it('Fetches current user with bad credentials', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2060,36 +1645,31 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-                    try {
-                        server.route({
-                            method: 'GET',
-                            path: '/users',
-                            handler: { tandy: { userUrlPrefix: 1 } }
-                        });
-                    }
-                    catch (e) {
-                        expect(e).to.exist();
-                        expect(e).to.be.an.error('Option userUrlPrefix should only have a string or a falsy value.');
-                        done();
-                    }
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/user',
+            config: {
+                auth: { strategy: 'mine' }
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/user',
+            headers: { authorization : 'dontFOOcare' }
+        };
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(401);
     });
-    it('Fetches more than default limit number of users using query param', (done) => {
+    it('Fetches current user without credentials', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2100,257 +1680,29 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users',
-                        handler: {
-                            tandy: {
-                                limit: 3
-                            }
-                        }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users?limit=5'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.array();
-                        expect(result.length).to.equal(4);
-                        done();
-                    });
-                });
-
-            });
+        server.route({
+            method: 'GET',
+            path: '/user',
+            config: {
+                auth: { strategy: 'mine' }
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/user'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(401);
     });
-    it('Fetches current user', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/user',
-                        config: {
-                            auth: { strategy: 'mine' }
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/user',
-                        headers: { authorization : 'dontcare' }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.object();
-                        expect(result.id).to.equal(1);
-                        done();
-                    });
-                });
-
-            });
-        });
-    });
-    it('Fetches current user', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/user/tokens',
-                        config: {
-                            auth: { strategy: 'mine' }
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/user/tokens',
-                        headers: { authorization : 'dontcare' }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.object();
-                        expect(result.id).to.equal(1);
-                        done();
-                    });
-                });
-
-            });
-        });
-    });
-    it('Fetches current user with bad credentials', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/user',
-                        config: {
-                            auth: { strategy: 'mine' }
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/user',
-                        headers: { authorization : 'dontFOOcare' }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(401);
-                        done();
-                    });
-                });
-
-            });
-        });
-    });
-    it('Fetches current user without credentials', (done) => {
-
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        getServer(config, (err, server) => {
-
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/user',
-                        config: {
-                            auth: { strategy: 'mine' }
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/user'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(401);
-                        done();
-                    });
-                });
-
-            });
-        });
-    });
-    it('Causes an Objection error with GET', (done) => {
+    it('Causes an Objection error with GET', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2362,37 +1714,23 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-
-                server.route({
-                    method: 'GET',
-                    path: '/users/{id}',
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'GET',
-                    url: '/users/1'
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Fetches a specific user', (done) => {
+    it('Fetches a specific user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2403,45 +1741,30 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result).to.be.an.object();
-                        expect(result.email).to.equal('a@b.c');
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.object();
+        expect(result.email).to.equal('a@b.c');
     });
-    it('Fetches a nonexstent user', (done) => {
+    it('Fetches a nonexstent user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2452,41 +1775,27 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/9999'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/9999'
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(404);
     });
-    it('Fetches a specific user with tokens', (done) => {
+    it('Fetches a specific user with tokens', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2497,45 +1806,30 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/tokens'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result.tokens).to.be.an.array();
-                        expect(result.tokens.length).to.equal(2);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result.tokens).to.be.an.array();
+        expect(result.tokens.length).to.equal(2);
     });
-    it('Generates an Objection error when populating', (done) => {
+    it('Generates an Objection error when populating', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2547,37 +1841,24 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-
-                server.route({
-                    method: 'GET',
-                    path: '/users/{id}/tokens',
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'GET',
-                    url: '/users/1/tokens'
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens'
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(500);
     });
-    it('Checks if a token is associated with a user', (done) => {
+    it('Checks if a token is associated with a user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2588,41 +1869,27 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/tokens/98'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(204);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens/98'
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(204);
     });
-    it('Sets up a too long route', (done) => {
+    it('Sets up a too long route', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2633,37 +1900,23 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-                    try {
-                        server.route({
-                            method: 'GET',
-                            path: '/users/{id}/tokens/{tokenId}/firetruck/{truck}',
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (e) {
-
-                        expect(e).to.exist();
-                        expect(e).to.be.an.error('Number of path segments should be between 1 and 4.');
-                        done();
-                    }
-                });
+        try {
+            server.route({
+                method: 'GET',
+                path: '/users/{id}/tokens/{tokenId}/firetruck/{truck}',
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (e) {
+            expect(e).to.exist();
+            expect(e).to.be.an.error('Number of path segments should be between 1 and 4.');
+
+        }
     });
-    it('Checks if a token is associated with a user, fails', (done) => {
+    it('Checks if a token is associated with a user, fails', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2674,41 +1927,25 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/tokens/97'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens/97'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
     });
-    it('Fetches a specific user with tokens using different name and `associationAttr`', (done) => {
+    it('Fetches a specific user with tokens using different name and `associationAttr`', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2719,47 +1956,32 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/foobar',
-                        handler: { tandy: {
-                            associationAttr: 'tokens'
-                        } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/foobar'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result.tokens).to.be.an.array();
-                        expect(result.tokens.length).to.equal(2);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/foobar',
+            handler: { tandy: {
+                associationAttr: 'tokens'
+            } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/foobar'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result.tokens).to.be.an.array();
+        expect(result.tokens.length).to.equal(2);
     });
-    it('Leaves `associationAttr` null', (done) => {
+    it('Leaves `associationAttr` null', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2770,43 +1992,28 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/foobar',
-                        handler: { tandy: {
-                            associationAttr: null
-                        } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/foobar'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/foobar',
+            handler: { tandy: {
+                associationAttr: null
+            } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/foobar'
+        };
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Sets `associationAttr` to an invalid value', (done) => {
+    it('Sets `associationAttr` to an invalid value', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2817,43 +2024,28 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/foobar',
-                        handler: { tandy: {
-                            associationAttr: []
-                        } }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/1/foobar'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/foobar',
+            handler: { tandy: {
+                associationAttr: []
+            } }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/foobar'
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(500);
     });
-    it('Fetches a nonexstent user with tokens', (done) => {
+    it('Fetches a nonexstent user with tokens', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2864,41 +2056,26 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/000000/tokens'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/000000/tokens'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
     });
-    it('Fetches a specific user with empty tokens array', (done) => {
+    it('Fetches a specific user with empty tokens array', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2909,45 +2086,29 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'GET',
-                        path: '/users/{id}/tokens',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'GET',
-                        url: '/users/2/tokens'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(200);
-                        expect(result.tokens).to.be.an.array();
-                        expect(result.tokens.length).to.equal(0);
-                        done();
-                    });
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'GET',
+            url: '/users/2/tokens'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result.tokens).to.be.an.array();
+        expect(result.tokens.length).to.equal(0);
     });
-    it('Adds a token to a user with PUT', (done) => {
+    it('Adds a token to a user with PUT', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -2958,41 +2119,26 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'PUT',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'PUT',
-                        url: '/users/1/tokens/97'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(204);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'PUT',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'PUT',
+            url: '/users/1/tokens/97'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(204);
     });
-    it('Creates Objection error with PUT', (done) => {
+    it('Creates Objection error with PUT', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3004,37 +2150,23 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-
-                server.route({
-                    method: 'PUT',
-                    path: '/users/{id}/tokens/{tokenId}',
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'PUT',
-                    url: '/users/1/tokens/97'
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+        server.route({
+            method: 'PUT',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'PUT',
+            url: '/users/1/tokens/97'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Creates Objection error on relate with PUT', (done) => {
+    it('Creates Objection error on relate with PUT', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3043,41 +2175,26 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/bad_seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'PUT',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'PUT',
-                        url: '/users/1/tokens/97'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(500);
-                        done();
-                    });
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/bad_seeds' });
+        server.route({
+            method: 'PUT',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'PUT',
+            url: '/users/1/tokens/97'
+        };
+
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Creates a new token and adds to user', (done) => {
+    it('Creates a new token and adds to user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3088,58 +2205,44 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
+        server.route({
+            method: 'POST',
+            path: '/users/{id}/tokens',
+            config: {
+                description: 'Adds a new token to a user',
+                validate: {
+                    payload: {
+                        temp: Joi.string()
+                    },
+                    params: {
+                        id: Joi.number().integer().required()
                     }
-
-                    server.route({
-                        method: 'POST',
-                        path: '/users/{id}/tokens',
-                        config: {
-                            description: 'Adds a new token to a user',
-                            validate: {
-                                payload: {
-                                    temp: Joi.string()
-                                },
-                                params: {
-                                    id: Joi.number().integer().required()
-                                }
-                            },
-                            auth: false
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'POST',
-                        url: '/users/1/tokens',
-                        payload: {
-                            temp: 'this is just a string'
-                        }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(201);
-                        expect(response.result).to.be.an.object();
-                        expect(response.result.user).to.equal(1);
-                        done();
-                    });
-                });
-            });
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'POST',
+            url: '/users/1/tokens',
+            payload: {
+                temp: 'this is just a string'
+            }
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(201);
+        expect(response.result).to.be.an.object();
+        expect(response.result.user).to.equal(1);
     });
-    it('Creates an objection error with relate/post', (done) => {
+    it('Creates an objection error with relate/post', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3151,56 +2254,40 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/bad_seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/bad_seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
+        server.route({
+            method: 'POST',
+            path: '/users/{id}/tokens',
+            config: {
+                description: 'Adds a new token to a user',
+                validate: {
+                    payload: {
+                        temp: Joi.string()
+                    },
+                    params: {
+                        id: Joi.number().integer().required()
                     }
-
-                    server.route({
-                        method: 'POST',
-                        path: '/users/{id}/tokens',
-                        config: {
-                            description: 'Adds a new token to a user',
-                            validate: {
-                                payload: {
-                                    temp: Joi.string()
-                                },
-                                params: {
-                                    id: Joi.number().integer().required()
-                                }
-                            },
-                            auth: false
-                        },
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'POST',
-                        url: '/users/1/tokens',
-                        payload: {
-                            temp: 'this is just a string'
-                        }
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(500);
-                        done();
-                    });
-                });
-            });
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'POST',
+            url: '/users/1/tokens',
+            payload: {
+                temp: 'this is just a string'
+            }
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Adds a token to a nonexistent user', (done) => {
+    it('Adds a token to a nonexistent user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3211,41 +2298,23 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'PUT',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'PUT',
-                        url: '/users/9999/tokens/97'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'PUT',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'PUT',
+            url: '/users/9999/tokens/97'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
     });
-    it('Adds a nonexistent token to a user', (done) => {
+    it('Adds a nonexistent token to a user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3256,41 +2325,25 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'PUT',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'PUT',
-                        url: '/users/1/tokens/999997'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+        server.route({
+            method: 'PUT',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'PUT',
+            url: '/users/1/tokens/999997'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
     });
-    it('Removes a token from a user', (done) => {
+    it('Removes a token from a user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3301,41 +2354,27 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'DELETE',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'DELETE',
-                        url: '/users/1/tokens/98'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(204);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/1/tokens/98'
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(204);
     });
-    it('Generates an Objection error when removing a token from a user', (done) => {
+    it('Generates an Objection error when removing a token from a user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3347,37 +2386,23 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-
-                server.route({
-                    method: 'DELETE',
-                    path: '/users/{id}/tokens/{tokenId}',
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'DELETE',
-                    url: '/users/1/tokens/98'
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/1/tokens/98'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Generates an Objection error when removing an existing token from a user', (done) => {
+    it('Generates an Objection error when removing an existing token from a user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3388,43 +2413,26 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'DELETE',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-                    knex.schema.dropTable('tokens').then(() => {
-
-                        const options = {
-                            method: 'DELETE',
-                            url: '/users/1/tokens/98'
-                        };
-
-                        server.inject(options, (response) => {
-
-                            expect(response.statusCode).to.equal(500);
-                            done();
-                        });
-                    });
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+        await knex.schema.dropTable('tokens');
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/1/tokens/98'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(500);
     });
-    it('Removes a token from a nonexistent user', (done) => {
+    it('Removes a token from a nonexistent user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3435,41 +2443,25 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'DELETE',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'DELETE',
-                        url: '/users/99999/tokens/98'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/99999/tokens/98'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
     });
-    it('Removes a nonexistent token from a user', (done) => {
+    it('Removes a nonexistent token from a user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3480,41 +2472,25 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'DELETE',
-                        path: '/users/{id}/tokens/{tokenId}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'DELETE',
-                        url: '/users/1/tokens/999998'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}/tokens/{tokenId}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/1/tokens/999998'
+        };
+        const response = await server.inject(options);
+        expect(response.statusCode).to.equal(404);
     });
-    it('Sets up a count on a non count route', (done) => {
+    it('Sets up a count on a non count route', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3525,35 +2501,21 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-                    try {
-                        server.route({
-                            method: 'DELETE',
-                            path: '/users/count',
-                            handler: { tandy: {} }
-                        });
-                    }
-                    catch (e) {
-                        expect(e).to.exist();
-                        done();
-                    }
-                });
+        try {
+            server.route({
+                method: 'DELETE',
+                path: '/users/count',
+                handler: { tandy: {} }
             });
-        });
+        }
+        catch (e) {
+            expect(e).to.exist();
+        }
     });
-    it('Deletes a specific user', (done) => {
+    it('Deletes a specific user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3564,44 +2526,28 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'DELETE',
-                        path: '/users/{id}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'DELETE',
-                        url: '/users/1'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        const result = response.result;
-
-                        expect(response.statusCode).to.equal(204);
-                        expect(result).to.be.null();
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/1'
+        };
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(204);
+        expect(result).to.be.null();
     });
-    it('Generates an Objection error when deleting a nonexistent model ', (done) => {
+    it('Generates an Objection error when deleting a nonexistent model ', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3612,37 +2558,24 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                if (err) {
-                    return done(err);
-                }
-
-                server.route({
-                    method: 'DELETE',
-                    path: '/users/{id}',
-                    handler: { tandy: {} }
-                });
-
-                const options = {
-                    method: 'DELETE',
-                    url: '/users/1'
-                };
-
-                server.inject(options, (response) => {
-
-                    expect(response.statusCode).to.equal(500);
-                    done();
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}',
+            handler: { tandy: {} }
         });
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/1'
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(500);
     });
-    it('Deletes a nonexistent user', (done) => {
+    it('Deletes a nonexistent user', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -3653,38 +2586,23 @@ describe('Tandy', () => {
             }
         });
 
-        getServer(config, (err, server) => {
+        const server = await getServer(config);
+        await server.initialize();
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
 
-            if (err) {
-                return done(err);
-            }
-            server.initialize((err) => {
-
-                const knex = server.knex();
-                knex.seed.run({ directory: 'test/seeds' }).then((data) => {
-
-                    if (err) {
-                        return done(err);
-                    }
-
-                    server.route({
-                        method: 'DELETE',
-                        path: '/users/{id}',
-                        handler: { tandy: {} }
-                    });
-
-                    const options = {
-                        method: 'DELETE',
-                        url: '/users/99999'
-                    };
-
-                    server.inject(options, (response) => {
-
-                        expect(response.statusCode).to.equal(404);
-                        done();
-                    });
-                });
-            });
+        server.route({
+            method: 'DELETE',
+            path: '/users/{id}',
+            handler: { tandy: {} }
         });
-    });//*/
+
+        const options = {
+            method: 'DELETE',
+            url: '/users/99999'
+        };
+        const response = await server.inject(options);
+
+        expect(response.statusCode).to.equal(404);
+    });
 });

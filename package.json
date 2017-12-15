@@ -1,6 +1,6 @@
 {
   "name": "tandy",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "index.js",
   "scripts": {
@@ -27,24 +27,29 @@
     "url": "https://github.com/mattboutet/tandy/issues"
   },
   "dependencies": {
-    "boom": "3.x.x",
-    "call": "4.x.x",
-    "hapi": "16.x.x",
-    "hoek": "4.x.x",
+    "boom": "6.x.x",
+    "call": "5.x.x",
+    "hoek": "5.x.x",
     "items": "2.x.x",
-    "joi": "10.x.x",
-    "knex": "0.13.x",
-    "lodash": "4.x.x",
-    "objection": "0.8.x",
-    "schwifty": "2.x.x"
+    "joi": "13.x.x",
+    "lodash": "4.x.x"
+  },
+  "peerDependencies": {
+    "hapi": ">=17 <18",
+    "knex": ">=0.8",
+    "objection": ">=0.9 <0.10"
   },
   "devDependencies": {
-    "code": "4.x.x",
+    "code": "5.x.x",
     "coveralls": "2.x.x",
-    "eslint": "3.x.x",
-    "eslint-config-hapi": "10.x.x",
+    "eslint": "4.x.x",
+    "eslint-config-hapi": "11.x.x",
     "eslint-plugin-hapi": "4.x.x",
-    "lab": "13.x.x",
+    "hapi": "17.x.x",
+    "knex": "0.13.x",
+    "lab": "15.x.x",
+    "objection": "0.9.x",
+    "schwifty": "3.x.x",
     "sqlite3": "3.x.x"
   },
   "homepage": "https://github.com/mattboutet/tandy"
