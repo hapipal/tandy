@@ -58,7 +58,7 @@ describe('Tandy', () => {
 
     const getServer = async (options) => {
 
-        const server = Hapi.Server();
+        const server = Hapi.Server({ debug: { request: false } });
 
         server.auth.scheme('custom', scheme);
         server.auth.strategy('mine', 'custom');
@@ -2009,8 +2009,9 @@ describe('Tandy', () => {
             method: 'GET',
             url: '/users/1/foobar'
         };
+
         const response = await server.inject(options);
-        expect(response.statusCode).to.equal(404);
+        expect(response.statusCode).to.equal(500);
     });
     it('Sets `associationAttr` to an invalid value', async () => {
 
@@ -2042,7 +2043,7 @@ describe('Tandy', () => {
         };
         const response = await server.inject(options);
 
-        expect(response.statusCode).to.equal(404);
+        expect(response.statusCode).to.equal(500);
     });
     it('Fetches a nonexstent user with tokens', async () => {
 
