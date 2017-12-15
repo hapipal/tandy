@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "boom": "6.x.x",
-    "bounce": "^1.2.0",
     "call": "5.x.x",
     "hapi": "17.x.x",
     "hoek": "5.x.x",
