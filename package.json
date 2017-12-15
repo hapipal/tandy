@@ -32,8 +32,12 @@
     "hoek": "5.x.x",
     "items": "2.x.x",
     "joi": "13.x.x",
-    "knex": "0.13.x",
     "lodash": "4.x.x"
+  },
+  "peerDependencies": {
+    "hapi": ">=17 <18",
+    "knex": ">=0.8",
+    "objection": ">=0.9 <0.10"
   },
   "devDependencies": {
     "code": "5.x.x",
@@ -42,6 +46,7 @@
     "eslint-config-hapi": "11.x.x",
     "eslint-plugin-hapi": "4.x.x",
     "hapi": "17.x.x",
+    "knex": "0.13.x",
     "lab": "15.x.x",
     "objection": "0.9.x",
     "schwifty": "3.x.x",
