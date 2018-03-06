@@ -8,7 +8,7 @@ module.exports = class tokens extends Model {
 
     static get tableName() {
 
-        return 'tokens';
+        return 'Tokens';
     }
 
     static get joiSchema() {
@@ -29,7 +29,7 @@ module.exports = class tokens extends Model {
                 modelClass: require('./users'),
                 join: {
                     from: 'users.id',
-                    to: 'tokens.user'
+                    to: 'Tokens.user'
                 }
             }
         };

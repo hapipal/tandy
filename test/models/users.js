@@ -30,7 +30,7 @@ module.exports = class Users extends Model {
                 modelClass: require('./tokens'),
                 join: {
                     from: 'users.id',
-                    to: 'tokens.user'
+                    to: 'Tokens.user'
                 }
             }
         };
