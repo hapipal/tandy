@@ -10,9 +10,9 @@ exports.seed = function (knex, Promise) {
             knex('users').insert({ id: 2, email: 'c@d.e', firstName: 'c', lastName: 'd' }),
             knex('users').insert({ id: 3, email: 'a@d.e', firstName: 'a', lastName: 'd' }),
             knex('users').insert({ id: 4, email: 'd@d.e', firstName: 'd', lastName: 'd' }),
-            knex('tokens').insert({ id: 99, temp: 'text', user: 1 }),
-            knex('tokens').insert({ id: 98, temp: 'test', user: 1 }),
-            knex('tokens').insert({ id: 97, temp: 'noUser', user: null })
+            knex('Tokens').insert({ id: 99, temp: 'text', user: 1 }),
+            knex('Tokens').insert({ id: 98, temp: 'test', user: 1 }),
+            knex('Tokens').insert({ id: 97, temp: 'noUser', user: null })
         ]);
     });
 };
