@@ -4,6 +4,8 @@ Auto-generated, RESTful, CRUDdy route handlers
 
 [![Build Status](https://travis-ci.org/mattboutet/tandy.svg?branch=master)](https://travis-ci.org/mattboutet/tandy) [![Coverage Status](https://coveralls.io/repos/mattboutet/tandy/badge.svg?branch=master&service=github)](https://coveralls.io/github/mattboutet/tandy?branch=master)
 
+Lead Maintainer - [Matt Boutet](https://github.com/mattboutet)
+
 > **Note**
 >
 > This plugin is intended to work with [hapi](https://github.com/hapijs/hapi) v17+ and its [Objection ORM](https://github.com/Vincit/objection.js/) plugin, [schwifty](https://github.com/BigRoomStudios/Schwifty/).
