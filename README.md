@@ -2,7 +2,7 @@
 
 Auto-generated, RESTful, CRUDdy route handlers
 
-[![Build Status](https://travis-ci.org/hapipal/tandy.svg?branch=master)](https://travis-ci.org/hapipal/tandy) [![Coverage Status](https://coveralls.io/repos/hapipal/tandy/badge.svg?branch=master&service=github)](https://coveralls.io/github/hapipal/tandy?branch=master)
+[![Build Status](https://travis-ci.org/hapipal/tandy.svg?branch=master)](https://travis-ci.org/hapipal/tandy) [![Coverage Status](https://coveralls.io/repos/github/hapipal/tandy/badge.svg?branch=master)](https://coveralls.io/github/hapipal/tandy?branch=master)
 
 Lead Maintainer - [Matt Boutet](https://github.com/mattboutet)
 
