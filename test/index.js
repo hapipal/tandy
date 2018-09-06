@@ -83,6 +83,11 @@ describe('Tandy', () => {
 
     });
 
+    /**
+    it('throws when given an invalid prefix');
+    it('replaces prefix only if matched at start of the route')
+    **/
+
     it('creates a new user', async () => {
 
         const config = getOptions({
