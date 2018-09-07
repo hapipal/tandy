@@ -125,7 +125,7 @@ describe('Tandy', () => {
         }
     });
 
-    it('replaces prefix if found at the start of the given route\'s path', async () => {
+    it('ignores the given prefix if not an exact match at the start of the route path', async () => {
 
         const config = getOptions({
             schwifty: {
@@ -168,7 +168,7 @@ describe('Tandy', () => {
         }
     });
 
-    it('strips the given prefix only if an exact match at the start of the route path', async () => {
+    it('replaces prefix if found at the start of the given route\'s path', async () => {
 
         const config = getOptions({
             schwifty: {
