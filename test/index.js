@@ -83,6 +83,146 @@ describe('Tandy', () => {
 
     });
 
+    it('throws when given an invalid prefix', async () => {
+
+        const config = getOptions({
+            tandy: {
+                // Globally set prefix, invalid URL segment
+                prefix: 'no-leading-slash'
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        try {
+            server.route({
+                method: 'GET',
+                path: '/route',
+                handler: { tandy: {} }
+            });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('Prefix parameter should be a string following the pattern: /^\\/.+/');
+        }
+
+        try {
+            server.route({
+                method: 'GET',
+                path: '/route',
+                handler: {
+                    tandy: {
+                        // Route-specific invalid prefix value
+                        prefix: 5
+                    }
+                }
+            });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            expect(err).to.be.an.error('Prefix parameter should be a string following the pattern: /^\\/.+/');
+        }
+    });
+
+    it('ignores the given prefix if not an exact match at the start of the route path', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            },
+            tandy: {
+                prefix: '/prefix'
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        try {
+            server.route({
+                method: 'POST',
+                path: '/users/prefix',
+                config: {
+                    description: 'Register new user',
+                    validate: {
+                        payload: {
+                            email: Joi.string().email().required(),
+                            password: Joi.string().required(),
+                            firstName: Joi.string().required(),
+                            lastName: Joi.string().required()
+                        }
+                    },
+                    auth: false
+                },
+                handler: { tandy: {} }
+            });
+        }
+        catch (err) {
+            expect(err).to.be.an.error();
+            // Signifies prefix was failed to be removed, so path was misinterpreted
+            expect(err).to.be.an.error('This post route does not match a Tandy pattern.');
+        }
+    });
+
+    it('replaces prefix if found at the start of the given route\'s path', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            },
+            tandy: {
+                prefix: '/prefix'
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        server.route({
+            method: 'POST',
+            path: '/prefix/users',
+            config: {
+                description: 'Register new user',
+                validate: {
+                    payload: {
+                        email: Joi.string().email().required(),
+                        password: Joi.string().required(),
+                        firstName: Joi.string().required(),
+                        lastName: Joi.string().required()
+                    }
+                },
+                auth: false
+            },
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'POST',
+            url: '/prefix/users',
+            payload: {
+                email: 'test@test.com',
+                password: 'password',
+                firstName: 'Test',
+                lastName: 'Test'
+            }
+        };
+
+        const res = await server.inject(options);
+
+        const result = res.result;
+
+        expect(res.statusCode).to.equal(201);
+        expect(result).to.be.an.object();
+        expect(result.email).to.equal('test@test.com');
+    });
+
     it('creates a new user', async () => {
 
         const config = getOptions({
