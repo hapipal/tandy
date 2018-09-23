@@ -33,7 +33,7 @@
     "hoek": "5.x.x",
     "items": "2.x.x",
     "joi": "13.x.x",
-    "lodash": "4.x.x"
+    "lodash": "^4.17.5"
   },
   "peerDependencies": {
     "hapi": "17.x.x",
