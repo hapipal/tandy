@@ -1,4 +1,5 @@
 'use strict';
+
 const Model = require('schwifty').Model;
 const Joi = require('joi');
 
