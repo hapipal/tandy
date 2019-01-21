@@ -36,7 +36,7 @@
     "lodash": "^4.17.5"
   },
   "peerDependencies": {
-    "hapi": "18.x.x",
+    "hapi": ">=17 <19",
     "schwifty": "4.x.x"
   },
   "devDependencies": {

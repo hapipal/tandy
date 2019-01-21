@@ -958,7 +958,7 @@ describe('Tandy', () => {
 
         await server.initialize();
         const knex = server.knex();
-        // const data = await knex.seed.run({ directory: 'test/seeds' });
+
         await knex.seed.run({ directory: 'test/seeds' });
 
         server.route({
@@ -980,6 +980,38 @@ describe('Tandy', () => {
         expect(response.statusCode).to.equal(200);
         expect(result).to.be.an.array();
         expect(result.length).to.equal(3);
+    });
+    it('Tries to use count too early in route path', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users,
+                    TestModels.Tokens
+                ]
+            }
+        });
+
+        const server = await getServer(config);
+
+        await server.initialize();
+        const knex = server.knex();
+
+        await knex.seed.run({ directory: 'test/seeds' });
+        try {
+            server.route({
+                method: 'GET',
+                path: '/count/tokens',
+                handler: { tandy: {
+                    model: 'tokens'
+                } }
+            });
+        }
+        catch (e) {
+            expect(e).to.exist();
+            expect(e).to.be.an.error('Count can only appear at the end of a route path');
+
+        }
     });
     it('Fetches all users', async () => {
 
