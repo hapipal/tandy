@@ -277,6 +277,7 @@ describe('Tandy', () => {
     it('Generates an Objection error when creating a new token', async () => {
 
         const Model = require('schwifty').Model;
+
         const Tokens = class tokens extends Model {
 
             static get tableName() {
@@ -1130,6 +1131,7 @@ describe('Tandy', () => {
     it('Generates an Objection error when GETting', async () => {
 
         const Model = require('schwifty').Model;
+
         const Users = class users extends Model {
 
             static get tableName() {
@@ -1166,6 +1168,7 @@ describe('Tandy', () => {
     it('Generates an Objection error when GETting a count', async () => {
 
         const Model = require('schwifty').Model;
+
         const Users = class users extends Model {
 
             static get tableName() {
