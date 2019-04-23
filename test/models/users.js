@@ -1,7 +1,7 @@
 'use strict';
 
 const Model = require('schwifty').Model;
-const Joi = require('joi');
+const Joi = require('@hapi/joi');
 
 module.exports = class Users extends Model {
 

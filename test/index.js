@@ -1,10 +1,10 @@
 'use strict';
 
-const Lab = require('lab');
-const Hapi = require('hapi');
-const Joi = require('joi');
-const Hoek = require('hoek');
-const Boom = require('boom');
+const Lab = require('@hapi/lab');
+const Hapi = require('@hapi/hapi');
+const Joi = require('@hapi/joi');
+const Hoek = require('@hapi/hoek');
+const Boom = require('@hapi/boom');
 const Schwifty = require('schwifty');
 const Tandy = require('..');
 const TestModels = require('./models');

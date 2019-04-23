@@ -4,7 +4,7 @@
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "lib/index.js",
   "scripts": {
-    "test": "lab -a code -L -t 100 -I '__core-js_shared__'",
+    "test": "lab -a @hapi/code -L -t 100 -I '__core-js_shared__'",
     "coveralls": "lab -r lcov | coveralls",
     "lint": "eslint ."
   },
@@ -28,26 +28,25 @@
     "url": "https://github.com/hapipal/tandy/issues"
   },
   "dependencies": {
-    "boom": "7.x.x",
-    "call": "5.x.x",
-    "hoek": "5.x.x",
-    "items": "2.x.x",
-    "joi": "13.x.x",
+    "@hapi/boom": "7.x.x",
+    "@hapi/call": "5.x.x",
+    "@hapi/hoek": "6.x.x",
+    "@hapi/joi": "15.x.x",
     "lodash": "^4.17.5"
   },
   "peerDependencies": {
-    "hapi": ">=17 <19",
+    "@hapi/hapi": ">=17 <19",
     "schwifty": "4.x.x"
   },
   "devDependencies": {
-    "code": "5.x.x",
+    "@hapi/code": "5.x.x",
     "coveralls": "3.x.x",
     "eslint": "4.x.x",
     "eslint-config-hapi": "11.x.x",
     "eslint-plugin-hapi": "4.x.x",
-    "hapi": "18.x.x",
+    "@hapi/hapi": "18.x.x",
     "knex": "0.14.x",
-    "lab": "18.x.x",
+    "@hapi/lab": "18.x.x",
     "objection": "1.x.x",
     "schwifty": "4.x.x",
     "sqlite3": "4.x.x"
