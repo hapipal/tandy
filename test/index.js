@@ -1558,7 +1558,7 @@ describe('Tandy', () => {
                     }
                 }
             },
-            handler: { tandy: { skip: 1 } }
+            handler: { tandy: {} }
         });
 
         const options = {
