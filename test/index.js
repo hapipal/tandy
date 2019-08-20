@@ -1379,6 +1379,85 @@ describe('Tandy', () => {
         //this one's ID would cause it to be in a different spot if sort failed
         expect(result[2].email).to.equal('c@d.e');
     });
+    it('Exctracts users by firstName = a using options' , async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users
+                ]
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: { where: { firstName: 'a'  } } }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(2);
+        expect(result[0]).to.be.an.object();
+        expect(result[0].firstName).to.equal('a');
+    });
+    it('Exctracts users by firstName = a using query param' , async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Users
+                ]
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {  } },
+            config: {
+                validate: {
+                    query: {
+                        where:Joi.string().required()
+                    }
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?where=%7B%20%22firstName%22%3A%20%22a%22%20%7D'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(2);
+        expect(result[0]).to.be.an.object();
+        expect(result[0].firstName).to.equal('a');
+    });
     it('Fetches limited number of users', async () => {
 
         const config = getOptions({
