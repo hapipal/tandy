@@ -45,7 +45,7 @@
     "@hapi/eslint-config-hapi": "12.x.x",
     "@hapi/eslint-plugin-hapi": "4.x.x",
     "@hapi/hapi": "18.x.x",
-    "knex": "0.16.x",
+    "knex": "0.20.x",
     "@hapi/lab": "18.x.x",
     "objection": "1.x.x",
     "schwifty": "4.x.x",
