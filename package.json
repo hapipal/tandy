@@ -32,7 +32,7 @@
     "@hapi/call": "5.x.x",
     "@hapi/hoek": "6.x.x",
     "@hapi/joi": "15.x.x",
-    "lodash": "^4.17.5"
+    "lodash": "^4.17.15"
   },
   "peerDependencies": {
     "@hapi/hapi": ">=17 <19",
@@ -40,13 +40,13 @@
   },
   "devDependencies": {
     "@hapi/code": "5.x.x",
-    "coveralls": "3.x.x",
-    "eslint": "5.x.x",
     "@hapi/eslint-config-hapi": "12.x.x",
     "@hapi/eslint-plugin-hapi": "4.x.x",
-    "@hapi/hapi": "18.x.x",
-    "knex": "0.16.x",
+    "@hapi/hapi": "^18.4.0",
     "@hapi/lab": "18.x.x",
+    "coveralls": "3.x.x",
+    "eslint": "5.x.x",
+    "knex": "0.16.x",
     "objection": "1.x.x",
     "schwifty": "4.x.x",
     "sqlite3": "4.x.x"
