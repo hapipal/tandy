@@ -12,7 +12,10 @@ exports.seed = function (knex, Promise) {
             knex('users').insert({ id: 4, email: 'd@d.e', firstName: 'd', lastName: 'd' }),
             knex('Tokens').insert({ id: 99, temp: 'text', user: 1 }),
             knex('Tokens').insert({ id: 98, temp: 'test', user: 1 }),
-            knex('Tokens').insert({ id: 97, temp: 'noUser', user: null })
+            knex('Tokens').insert({ id: 97, temp: 'noUser', user: null }),
+            knex('counties').insert({ county: 'York' }),
+            knex('counties').insert({ county: 'Cumberland' }),
+            knex('counties').insert({ county: 'Androscoggin' })
         ]);
     });
 };

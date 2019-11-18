@@ -2690,6 +2690,30 @@ describe('Tandy', () => {
             expect(e).to.exist();
         }
     });
+    it('Sets up a county route to ensure count is matched right.', async () => {
+
+        const config = getOptions({
+            schwifty: {
+                models: [
+                    TestModels.Counties
+                ]
+            }
+        });
+
+        const server = await getServer(config);
+        await server.initialize();
+
+        try {
+            server.route({
+                method: 'GET',
+                path: '/counties',
+                handler: { tandy: {} }
+            });
+        }
+        catch (e) {
+            expect(e).to.not.exist();
+        }
+    });
     it('Deletes a specific user', async () => {
 
         const config = getOptions({
