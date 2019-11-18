@@ -46,7 +46,7 @@
     "@hapi/lab": "18.x.x",
     "coveralls": "3.x.x",
     "eslint": "5.x.x",
-    "knex": "0.16.x",
+    "knex": "0.20.x",
     "objection": "1.x.x",
     "schwifty": "4.x.x",
     "sqlite3": "4.x.x"
