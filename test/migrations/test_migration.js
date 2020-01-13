@@ -21,6 +21,13 @@ exports.up = function (knex, Promise) {
                 .references('id')
                 .inTable('users');
             table.string('temp');
+        }),
+        knex.schema.createTable('counties', (table) => {
+
+            table.increments('id').primary();
+            table.string('county').notNullable();
+            table.timestamp('createdAt');
+            table.timestamp('updatedAt');
         })
     ]);
 };
@@ -29,6 +36,7 @@ exports.down = function (knex, Promise) {
 
     return Promise.all([
         knex.schema.dropTable('users'),
-        knex.schema.dropTable('tokens')
+        knex.schema.dropTable('tokens'),
+        knex.schema.dropTable('counties')
     ]);
 };
