@@ -1437,9 +1437,9 @@ describe('Tandy', () => {
             handler: { tandy: {  } },
             config: {
                 validate: {
-                    query: {
-                        where:Joi.string().required()
-                    }
+                    query: Joi.object().keys({
+                        where: Joi.string().required()
+                    })
                 }
             }
         });
