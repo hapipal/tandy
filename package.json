@@ -28,27 +28,27 @@
     "url": "https://github.com/hapipal/tandy/issues"
   },
   "dependencies": {
-    "@hapi/boom": "7.x.x",
-    "@hapi/call": "5.x.x",
-    "@hapi/hoek": "6.x.x",
-    "@hapi/joi": "15.x.x",
+    "@hapi/boom": "9.x.x",
+    "@hapi/call": "7.x.x",
+    "@hapi/hoek": "9.x.x",
+    "@hapi/joi": "17.x.x",
     "lodash": "^4.17.15"
   },
   "peerDependencies": {
-    "@hapi/hapi": ">=17 <19",
-    "schwifty": "4.x.x"
+    "@hapi/hapi": ">=19",
+    "schwifty": "5.x.x"
   },
   "devDependencies": {
-    "@hapi/code": "5.x.x",
-    "@hapi/eslint-config-hapi": "12.x.x",
+    "@hapi/code": "8.x.x",
+    "@hapi/eslint-config-hapi": "13.x.x",
     "@hapi/eslint-plugin-hapi": "4.x.x",
-    "@hapi/hapi": "^18.4.0",
-    "@hapi/lab": "18.x.x",
+    "@hapi/hapi": "19.x.x",
+    "@hapi/lab": "22.x.x",
     "coveralls": "3.x.x",
-    "eslint": "5.x.x",
+    "eslint": "6.x.x",
     "knex": "0.20.x",
-    "objection": "1.x.x",
-    "schwifty": "4.x.x",
+    "objection": "2.x.x",
+    "schwifty": "5.x.x",
     "sqlite3": "4.x.x"
   },
   "homepage": "https://github.com/hapipal/tandy"

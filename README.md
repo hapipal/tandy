@@ -8,7 +8,7 @@ Lead Maintainer - [Matt Boutet](https://github.com/mattboutet)
 
 > **Note**
 >
-> This plugin is intended to work with [hapi](https://github.com/hapijs/hapi) v17+ and its [Objection ORM](https://github.com/Vincit/objection.js/) plugin, [schwifty](https://github.com/BigRoomStudios/Schwifty/).
+> This plugin is intended to work with [hapi](https://github.com/hapijs/hapi) v19+ and its [Objection ORM](https://github.com/Vincit/objection.js/) plugin, [schwifty](https://github.com/BigRoomStudios/Schwifty/).
 
 ## What it does
 Tandy registers route handlers based upon the `method` and `path` of your route.  It turns them into RESTful API endpoints that automatically interact with models defined through Schwifty.  By default Tandy will infer which models to use from the request path.  The route handler is based on one of eight Tandys:
