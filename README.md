@@ -124,6 +124,10 @@ These options allow you to act on behalf of the authenticated user.  Typically t
 
     Sets default sorting criteria (i.e. `createdDate ASC`) (overridden by `sort` query parameter).  Defaults to no sort applied.
 
+ - `where` (string). Applies to `find`.
+
+    Extracts only those records that fulfill a specified condition. (i.e. `createdDate = '2019-08-19'`)(overridden by `where` query parameter). 
+
 ## Usage
 Here's an (over)simplified example.
 
