@@ -1,11 +1,9 @@
 'use strict';
 
-exports.seed = function (knex, Promise) {
+exports.seed = (knex) => {
 
-    return knex('users').then(() => {
-
-        return Promise.all([
-            // Inserts seed entries
+    return Promise.all(
+        [
             knex('users').insert({ id: 1, email: 'a@b.c', firstName: 'a', lastName: 'b' }),
             knex('users').insert({ id: 2, email: 'c@d.e', firstName: 'c', lastName: 'd' }),
             knex('users').insert({ id: 3, email: 'a@d.e', firstName: 'a', lastName: 'd' }),
@@ -17,5 +15,4 @@ exports.seed = function (knex, Promise) {
             knex('counties').insert({ county: 'Cumberland' }),
             knex('counties').insert({ county: 'Androscoggin' })
         ]);
-    });
 };

@@ -1,42 +1,34 @@
 'use strict';
 
-exports.up = function (knex, Promise) {
+exports.up = (knex) => {
 
-    return Promise.all([
+    return knex.schema.createTable('users', (table) => {
 
-        knex.schema.createTable('users', (table) => {
+        table.increments('id').primary();
+        table.string('email').notNullable();
+        table.string('password');
+        table.string('firstName').notNullable();
+        table.string('lastName').notNullable();
+        table.string('resetToken');
+    }).createTable('tokens', (table) => {
 
-            table.increments('id').primary();
-            table.string('email').notNullable();
-            table.string('password');
-            table.string('firstName').notNullable();
-            table.string('lastName').notNullable();
-            table.string('resetToken');
-        }),
+        table.increments('id').primary();
+        table.integer('user')
+            .references('id')
+            .inTable('users');
+        table.string('temp');
+    }).createTable('counties', (table) => {
 
-        knex.schema.createTable('tokens', (table) => {
-
-            table.increments('id').primary();
-            table.integer('user')
-                .references('id')
-                .inTable('users');
-            table.string('temp');
-        }),
-        knex.schema.createTable('counties', (table) => {
-
-            table.increments('id').primary();
-            table.string('county').notNullable();
-            table.timestamp('createdAt');
-            table.timestamp('updatedAt');
-        })
-    ]);
+        table.increments('id').primary();
+        table.string('county').notNullable();
+        table.timestamp('createdAt');
+        table.timestamp('updatedAt');
+    });
 };
 
-exports.down = function (knex, Promise) {
+exports.down = (knex) => {
 
-    return Promise.all([
-        knex.schema.dropTable('users'),
-        knex.schema.dropTable('tokens'),
-        knex.schema.dropTable('counties')
-    ]);
+    return knex.schema.dropTable('users')
+        .dropTable('tokens')
+        .dropTable('counties');
 };

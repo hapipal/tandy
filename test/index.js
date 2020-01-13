@@ -149,12 +149,12 @@ describe('Tandy', () => {
                 config: {
                     description: 'Register new user',
                     validate: {
-                        payload: {
+                        payload: Joi.object({
                             email: Joi.string().email().required(),
                             password: Joi.string().required(),
                             firstName: Joi.string().required(),
                             lastName: Joi.string().required()
-                        }
+                        })
                     },
                     auth: false
                 },
@@ -191,12 +191,12 @@ describe('Tandy', () => {
             config: {
                 description: 'Register new user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         email: Joi.string().email().required(),
                         password: Joi.string().required(),
                         firstName: Joi.string().required(),
                         lastName: Joi.string().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -243,12 +243,12 @@ describe('Tandy', () => {
             config: {
                 description: 'Register new user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         email: Joi.string().email().required(),
                         password: Joi.string().required(),
                         firstName: Joi.string().required(),
                         lastName: Joi.string().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -338,15 +338,15 @@ describe('Tandy', () => {
             config: {
                 description: 'Update user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         email: Joi.string().email(),
                         password: Joi.string(),
                         firstName: Joi.string(),
                         lastName: Joi.string()
-                    },
-                    params: {
+                    }),
+                    params: Joi.object({
                         id: Joi.number().integer().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -387,12 +387,12 @@ describe('Tandy', () => {
             config: {
                 description: 'Update user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         email: Joi.string().email()
-                    },
-                    params: {
+                    }),
+                    params: Joi.object({
                         id: Joi.number().integer().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -432,15 +432,15 @@ describe('Tandy', () => {
             config: {
                 description: 'Update user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         email: Joi.string().email(),
                         password: Joi.string(),
                         firstName: Joi.string(),
                         lastName: Joi.string()
-                    },
-                    params: {
+                    }),
+                    params: Joi.object({
                         id: Joi.number().integer().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -478,15 +478,15 @@ describe('Tandy', () => {
             config: {
                 description: 'Update user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         email: Joi.string().email(),
                         password: Joi.string(),
                         firstName: Joi.string(),
                         lastName: Joi.string()
-                    },
-                    params: {
+                    }),
+                    params: Joi.object({
                         id: Joi.number().integer().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -527,15 +527,15 @@ describe('Tandy', () => {
                 config: {
                     description: 'Update user',
                     validate: {
-                        payload: {
+                        payload: Joi.object({
                             email: Joi.string().email(),
                             password: Joi.string(),
                             firstName: Joi.string(),
                             lastName: Joi.string()
-                        },
-                        params: {
+                        }),
+                        params: Joi.object({
                             id: Joi.number().integer().required()
-                        }
+                        })
                     },
                     auth: false
                 },
@@ -735,15 +735,15 @@ describe('Tandy', () => {
                 config: {
                     description: 'Update user',
                     validate: {
-                        payload: {
+                        payload: Joi.object({
                             email: Joi.string().email(),
                             password: Joi.string(),
                             firstName: Joi.string(),
                             lastName: Joi.string()
-                        },
-                        params: {
+                        }),
+                        params: Joi.object({
                             id: Joi.number().integer().required()
-                        }
+                        })
                     },
                     auth: false
                 },
@@ -778,15 +778,15 @@ describe('Tandy', () => {
                 config: {
                     description: 'Update user',
                     validate: {
-                        payload: {
+                        payload: Joi.object({
                             email: Joi.string().email(),
                             password: Joi.string(),
                             firstName: Joi.string(),
                             lastName: Joi.string()
-                        },
-                        params: {
+                        }),
+                        params: Joi.object({
                             id: Joi.number().integer().required()
-                        }
+                        })
                     },
                     auth: false
                 },
@@ -822,15 +822,15 @@ describe('Tandy', () => {
                 config: {
                     description: 'Update user',
                     validate: {
-                        payload: {
+                        payload: Joi.object({
                             email: Joi.string().email(),
                             password: Joi.string(),
                             firstName: Joi.string(),
                             lastName: Joi.string()
-                        },
-                        params: {
+                        }),
+                        params: Joi.object({
                             id: Joi.number().integer().required()
-                        }
+                        })
                     },
                     auth: false
                 },
@@ -868,15 +868,15 @@ describe('Tandy', () => {
                 config: {
                     description: 'Update user',
                     validate: {
-                        payload: {
+                        payload: Joi.object({
                             email: Joi.string().email(),
                             password: Joi.string(),
                             firstName: Joi.string(),
                             lastName: Joi.string()
-                        },
-                        params: {
+                        }),
+                        params: Joi.object({
                             id: Joi.number().integer().required()
-                        }
+                        })
                     },
                     auth: false
                 },
@@ -913,15 +913,15 @@ describe('Tandy', () => {
             config: {
                 description: 'Update user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         email: Joi.string().email(),
                         password: Joi.string(),
                         firstName: Joi.string(),
                         lastName: Joi.string()
-                    },
-                    params: {
+                    }),
+                    params: Joi.object({
                         id: Joi.number().integer().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -1481,9 +1481,9 @@ describe('Tandy', () => {
             handler: { tandy: { limit: 1 } },
             config: {
                 validate: {
-                    query: {
+                    query: Joi.object().keys({
                         sort: Joi.string().required()
-                    }
+                    })
                 }
             }
         });
@@ -1557,9 +1557,9 @@ describe('Tandy', () => {
             path: '/users/{id}/tokens',
             config: {
                 validate: {
-                    query: {
+                    query: Joi.object().keys({
                         limit: Joi.number().integer()
-                    }
+                    })
                 }
             },
             handler: { tandy: {} }
@@ -1632,9 +1632,9 @@ describe('Tandy', () => {
             path: '/users',
             config: {
                 validate: {
-                    query: {
+                    query: Joi.object().keys({
                         skip: Joi.number().integer()
-                    }
+                    })
                 }
             },
             handler: { tandy: {} }
@@ -1673,9 +1673,9 @@ describe('Tandy', () => {
             path: '/users',
             config: {
                 validate: {
-                    query: {
+                    query: Joi.object().keys({
                         skip: Joi.number().integer()
-                    }
+                    })
                 }
             },
             handler: { tandy: { skip: 1 } }
@@ -1842,7 +1842,7 @@ describe('Tandy', () => {
         const options = {
             method: 'GET',
             url: '/user',
-            headers: { authorization : 'dontcare' }
+            headers: { authorization: 'dontcare' }
         };
         const response = await server.inject(options);
         const result = response.result;
@@ -1879,7 +1879,7 @@ describe('Tandy', () => {
         const options = {
             method: 'GET',
             url: '/user/tokens',
-            headers: { authorization : 'dontcare' }
+            headers: { authorization: 'dontcare' }
         };
         const response = await server.inject(options);
         const result = response.result;
@@ -1917,7 +1917,7 @@ describe('Tandy', () => {
         const options = {
             method: 'GET',
             url: '/user',
-            headers: { authorization : 'dontFOOcare' }
+            headers: { authorization: 'dontFOOcare' }
         };
 
         const response = await server.inject(options);
@@ -2471,12 +2471,12 @@ describe('Tandy', () => {
             config: {
                 description: 'Adds a new token to a user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         temp: Joi.string()
-                    },
-                    params: {
+                    }),
+                    params: Joi.object({
                         id: Joi.number().integer().required()
-                    }
+                    })
                 },
                 auth: false
             },
@@ -2519,12 +2519,12 @@ describe('Tandy', () => {
             config: {
                 description: 'Adds a new token to a user',
                 validate: {
-                    payload: {
+                    payload: Joi.object({
                         temp: Joi.string()
-                    },
-                    params: {
+                    }),
+                    params: Joi.object({
                         id: Joi.number().integer().required()
-                    }
+                    })
                 },
                 auth: false
             },
