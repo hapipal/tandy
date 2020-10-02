@@ -32,7 +32,7 @@
     "@hapi/call": "8.x.x",
     "@hapi/hoek": "9.x.x",
     "joi": "17.x.x",
-    "lodash": "^4.17.19"
+    "lodash": "^4.17.20"
   },
   "peerDependencies": {
     "@hapi/hapi": ">=19",
