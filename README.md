@@ -6,9 +6,14 @@ Auto-generated, RESTful, CRUDdy route handlers
 
 Lead Maintainer - [Matt Boutet](https://github.com/mattboutet)
 
+## Installation
+```sh
+npm install @hapipal/tandy
+```
+
 > **Note**
 >
-> This plugin is intended to work with [hapi](https://github.com/hapijs/hapi) v19+ and its [Objection ORM](https://github.com/Vincit/objection.js/) plugin, [schwifty](https://github.com/BigRoomStudios/Schwifty/).
+> This plugin is intended to work with [hapi](https://github.com/hapijs/hapi) v19+ and its [Objection ORM](https://github.com/Vincit/objection.js/) plugin, [schwifty](https://github.com/hapipal/schwifty).
 
 ## What it does
 Tandy registers route handlers based upon the `method` and `path` of your route.  It turns them into RESTful API endpoints that automatically interact with models defined through Schwifty.  By default Tandy will infer which models to use from the request path.  The route handler is based on one of eight Tandys:
@@ -126,7 +131,7 @@ These options allow you to act on behalf of the authenticated user.  Typically t
 
  - `where` (string). Applies to `find`.
 
-    Extracts only those records that fulfill a specified condition. (i.e. `createdDate = '2019-08-19'`)(overridden by `where` query parameter). 
+    Extracts only those records that fulfill a specified condition. (i.e. `createdDate = '2019-08-19'`)(overridden by `where` query parameter).
 
 ## Usage
 Here's an (over)simplified example.
