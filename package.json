@@ -1,6 +1,6 @@
 {
   "name": "@hapipal/tandy",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "lib/index.js",
   "scripts": {
@@ -36,7 +36,7 @@
   },
   "peerDependencies": {
     "@hapi/hapi": ">=19",
-    "schwifty": "5.x.x"
+    "@hapipal/schwifty": "6.x.x"
   },
   "devDependencies": {
     "@hapi/code": "8.x.x",
@@ -48,7 +48,7 @@
     "eslint": "7.x.x",
     "knex": "0.21.12",
     "objection": "2.x.x",
-    "@hapipal/schwifty": "5.x.x",
+    "@hapipal/schwifty": "6.x.x",
     "sqlite3": "5.x.x"
   },
   "homepage": "https://github.com/hapipal/tandy"

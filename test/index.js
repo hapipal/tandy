@@ -2,10 +2,10 @@
 
 const Lab = require('@hapi/lab');
 const Hapi = require('@hapi/hapi');
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 const Hoek = require('@hapi/hoek');
 const Boom = require('@hapi/boom');
-const Schwifty = require('schwifty');
+const Schwifty = require('@hapipal/schwifty');
 const Tandy = require('..');
 const TestModels = require('./models');
 
@@ -128,18 +128,16 @@ describe('Tandy', () => {
     it('ignores the given prefix if not an exact match at the start of the route path', async () => {
 
         const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            },
             tandy: {
                 prefix: '/prefix'
             }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
 
         try {
@@ -171,18 +169,16 @@ describe('Tandy', () => {
     it('replaces prefix if found at the start of the given route\'s path', async () => {
 
         const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            },
             tandy: {
                 prefix: '/prefix'
             }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
 
         server.route({
@@ -225,16 +221,11 @@ describe('Tandy', () => {
 
     it('creates a new user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
 
         server.route({
@@ -276,7 +267,7 @@ describe('Tandy', () => {
     });
     it('Generates an Objection error when creating a new token', async () => {
 
-        const Model = require('schwifty').Model;
+        const Model = require('@hapipal/schwifty').Model;
 
         const Tokens = class tokens extends Model {
 
@@ -286,13 +277,8 @@ describe('Tandy', () => {
             }
         };
 
-        const config = getOptions({
-            schwifty: {
-                models: [Tokens]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel(Tokens);
         await server.initialize();
 
         server.route({
@@ -318,16 +304,11 @@ describe('Tandy', () => {
     });
     it('Updates a user with PATCH', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -370,16 +351,14 @@ describe('Tandy', () => {
     it('Generates an Objection error when it updates a user with PATCH', async () => {
 
         const config = getOptions({
-            schwifty: {
-                migrateOnStart: false,
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
+            schwifty: { migrateOnStart: false }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         server.route({
             method: 'PATCH',
@@ -412,16 +391,11 @@ describe('Tandy', () => {
     });
     it('Updates a nonexistent user with PATCH', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -459,15 +433,11 @@ describe('Tandy', () => {
     });
     it('Updates a user with PATCH and bad query', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -504,18 +474,13 @@ describe('Tandy', () => {
         const response = await server.inject(options);
         expect(response.statusCode).to.equal(404);
     });
-    it('Creates a bad Tandy patern', async () => {
+    it('Creates a bad Tandy pattern', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -547,18 +512,13 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('Unable to determine model for route /{id}/user');
         }
     });
-    it('Creates a bad Tandy patern with GET', async () => {
+    it('Creates a bad Tandy pattern with GET', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -579,18 +539,14 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
         }
     });
-    it('Creates a bad Tandy patern with GET', async () => {
+    it('Creates a bad Tandy pattern with GET', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -611,18 +567,13 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('This get route does not match a Tandy pattern.');
         }
     });
-    it('Creates a bad Tandy patern with DELETE', async () => {
+    it('Creates a bad Tandy pattern with DELETE', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -644,18 +595,13 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
         }
     });
-    it('Creates a bad Tandy patern with DELETE', async () => {
+    it('Creates a bad Tandy pattern with DELETE', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -678,18 +624,13 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('This delete route does not match a Tandy pattern.');
         }
     });
-    it('Creates a bad Tandy patern with OPTIONS', async () => {
+    it('Creates a bad Tandy pattern with OPTIONS', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -712,18 +653,14 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('Method isn\'t a Tandy.  Must be POST, GET, DELETE, PUT, or PATCH.');
         }
     });
-    it('Creates a bad Tandy patern with PATCH', async () => {
+    it('Creates a bad Tandy pattern with PATCH', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -755,19 +692,15 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('This patch route does not match a Tandy pattern.');
         }
     });
-    it('Creates a bad Tandy patern with PUT and wrong number params', async () => {
+    it('Creates a bad Tandy pattern with PUT and wrong number params', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
 
         await server.initialize();
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
 
@@ -798,17 +731,13 @@ describe('Tandy', () => {
             expect(err).to.be.an.error('This put route does not match a Tandy pattern.');
         }
     });
-    it('Creates a bad Tandy patern with PUT', async () => {
+    it('Creates a bad Tandy pattern with PUT', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -844,17 +773,13 @@ describe('Tandy', () => {
 
         }
     });
-    it('Creates a bad Tandy patern with POST', async () => {
+    it('Creates a bad Tandy pattern with POST', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -892,15 +817,11 @@ describe('Tandy', () => {
     });
     it('Updates a user with POST', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -945,16 +866,11 @@ describe('Tandy', () => {
     });
     it('Fetches all tokens, ensuring we handle lowercase model classnames', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -983,16 +899,11 @@ describe('Tandy', () => {
     });
     it('Tries to use count too early in route path', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -1015,15 +926,11 @@ describe('Tandy', () => {
     });
     it('Fetches all users', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
         await server.initialize();
         const knex = server.knex();
@@ -1051,18 +958,16 @@ describe('Tandy', () => {
     it('Fetches all users without actAsUser', async () => {
 
         const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            },
             tandy: {
                 actAsUser: false
             }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -1089,17 +994,15 @@ describe('Tandy', () => {
     it('Fetches all users without userUrlPrefix', async () => {
 
         const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            },
             tandy: {
                 userUrlPrefix: false
             }
         });
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -1126,18 +1029,15 @@ describe('Tandy', () => {
     it('Fetches all users without userModel', async () => {
 
         const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            },
             tandy: {
                 userModel: false
             }
         });
         const server = await getServer(config);
-
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -1162,7 +1062,7 @@ describe('Tandy', () => {
     });
     it('Generates an Objection error when GETting', async () => {
 
-        const Model = require('schwifty').Model;
+        const Model = require('@hapipal/schwifty').Model;
 
         const Users = class users extends Model {
 
@@ -1172,15 +1072,10 @@ describe('Tandy', () => {
             }
         };
 
-        const config = getOptions({
-            migrateOnStart: false,
-            schwifty: {
-                models: [Users]
-            }
-        });
+        const config = getOptions({ migrateOnStart: false });
 
         const server = await getServer(config);
-
+        server.registerModel(Users);
         await server.initialize();
 
         server.route({
@@ -1199,7 +1094,7 @@ describe('Tandy', () => {
     });
     it('Generates an Objection error when GETting a count', async () => {
 
-        const Model = require('schwifty').Model;
+        const Model = require('@hapipal/schwifty').Model;
 
         const Users = class users extends Model {
 
@@ -1208,13 +1103,9 @@ describe('Tandy', () => {
                 return 'foo';
             }
         };
-        const config = getOptions({
-            migrateOnStart: false,
-            schwifty: {
-                models: [Users]
-            }
-        });
+        const config = getOptions({ migrateOnStart: false });
         const server = await getServer(config);
+        server.registerModel(Users);
 
         await server.initialize();
 
@@ -1234,15 +1125,11 @@ describe('Tandy', () => {
     });
     it('Fetches count of users', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -1268,16 +1155,12 @@ describe('Tandy', () => {
     });
     it('Fetches count of tokens for user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1304,16 +1187,12 @@ describe('Tandy', () => {
     });
     it('Fetches all users with a different route, using `model`', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1342,16 +1221,12 @@ describe('Tandy', () => {
     });
     it('Fetches all users, sorted by email', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1381,15 +1256,8 @@ describe('Tandy', () => {
     });
     it('Exctracts users by firstName = a using options' , async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel(TestModels.Users);
         await server.initialize();
 
         const knex = server.knex();
@@ -1417,15 +1285,8 @@ describe('Tandy', () => {
     });
     it('Exctracts users by firstName = a using query param' , async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel(TestModels.Users);
         await server.initialize();
 
         const knex = server.knex();
@@ -1434,7 +1295,7 @@ describe('Tandy', () => {
         server.route({
             method: 'GET',
             path: '/users',
-            handler: { tandy: {  } },
+            handler: { tandy: {} },
             config: {
                 validate: {
                     query: Joi.object().keys({
@@ -1460,16 +1321,12 @@ describe('Tandy', () => {
     });
     it('Fetches limited number of users', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1502,16 +1359,12 @@ describe('Tandy', () => {
     });
     it('Fetches limited number of tokens for a user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1537,16 +1390,12 @@ describe('Tandy', () => {
     });
     it('Fetches limited number of tokens for a user using query param', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1579,16 +1428,12 @@ describe('Tandy', () => {
     });
     it('Fetches users, but skips first one', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1612,16 +1457,12 @@ describe('Tandy', () => {
     });
     it('Fetches users, but skips first one using query param', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1653,16 +1494,12 @@ describe('Tandy', () => {
     });
     it('Fetches users, but skips all of them and gets none', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1694,16 +1531,12 @@ describe('Tandy', () => {
     });
     it('Fetches users and gets none', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         server.route({
@@ -1725,16 +1558,12 @@ describe('Tandy', () => {
     });
     it('Sets invalid userModel', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         try {
@@ -1752,16 +1581,12 @@ describe('Tandy', () => {
     });
     it('Sets invalid userUrlPrefix', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         try {
@@ -1778,16 +1603,12 @@ describe('Tandy', () => {
     });
     it('Fetches more than default limit number of users using query param', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1816,16 +1637,12 @@ describe('Tandy', () => {
     });
     it('Fetches current user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1853,16 +1670,12 @@ describe('Tandy', () => {
     });
     it('Fetches current user with tokens', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1890,16 +1703,12 @@ describe('Tandy', () => {
     });
     it('Fetches current user with bad credentials', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1925,16 +1734,12 @@ describe('Tandy', () => {
     });
     it('Fetches current user without credentials', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -1960,15 +1765,15 @@ describe('Tandy', () => {
 
         const config = getOptions({
             schwifty: {
-                migrateOnStart: false,//don't set up the db and don't seed it, Objection will choke
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
+                migrateOnStart: false //don't set up the db and don't seed it, Objection will choke
             }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
 
         server.route({
@@ -1986,16 +1791,12 @@ describe('Tandy', () => {
     });
     it('Fetches a specific user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2020,16 +1821,12 @@ describe('Tandy', () => {
     });
     it('Fetches a nonexstent user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2051,16 +1848,12 @@ describe('Tandy', () => {
     });
     it('Fetches a specific user with tokens', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2086,16 +1879,14 @@ describe('Tandy', () => {
     it('Generates an Objection error when populating', async () => {
 
         const config = getOptions({
-            schwifty: {
-                migrateOnStart: false,
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
+            schwifty: { migrateOnStart: false }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
 
         server.route({
@@ -2114,16 +1905,12 @@ describe('Tandy', () => {
     });
     it('Checks if a token is associated with a user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2145,16 +1932,12 @@ describe('Tandy', () => {
     });
     it('Sets up a too long route', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         try {
@@ -2172,16 +1955,12 @@ describe('Tandy', () => {
     });
     it('Checks if a token is associated with a user, fails', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2201,16 +1980,12 @@ describe('Tandy', () => {
     });
     it('Fetches a specific user with tokens using different name and `associationAttr`', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2237,16 +2012,12 @@ describe('Tandy', () => {
     });
     it('Leaves `associationAttr` null', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2269,16 +2040,12 @@ describe('Tandy', () => {
     });
     it('Sets `associationAttr` to an invalid value', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2301,16 +2068,12 @@ describe('Tandy', () => {
     });
     it('Fetches a nonexstent user with tokens', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2331,16 +2094,12 @@ describe('Tandy', () => {
     });
     it('Fetches a specific user with empty tokens array', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2364,16 +2123,12 @@ describe('Tandy', () => {
     });
     it('Adds a token to a user with PUT', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2395,16 +2150,14 @@ describe('Tandy', () => {
     it('Creates Objection error with PUT', async () => {
 
         const config = getOptions({
-            schwifty: {
-                migrateOnStart: false,
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
+            schwifty: { migrateOnStart: false }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
 
         server.route({
@@ -2423,13 +2176,11 @@ describe('Tandy', () => {
     it('Creates Objection error on relate with PUT', async () => {
 
         const config = getOptions({
-            schwifty: {
-                migrationsDir: 'test/bad_migrations',
-                models: [TestModels.Users]
-            }
+            schwifty: { migrationsDir: 'test/bad_migrations' }
         });
 
         const server = await getServer(config);
+        server.registerModel(TestModels.Users);
         await server.initialize();
 
         const knex = server.knex();
@@ -2450,16 +2201,12 @@ describe('Tandy', () => {
     });
     it('Creates a new token and adds to user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2499,16 +2246,14 @@ describe('Tandy', () => {
     it('Creates an objection error with relate/post', async () => {
 
         const config = getOptions({
-            schwifty: {
-                migrationsDir: 'test/bad_migrations',
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
+            schwifty: { migrationsDir: 'test/bad_migrations' }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/bad_seeds' });
@@ -2543,16 +2288,12 @@ describe('Tandy', () => {
     });
     it('Adds a token to a nonexistent user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         server.route({
@@ -2570,16 +2311,12 @@ describe('Tandy', () => {
     });
     it('Adds a nonexistent token to a user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2599,16 +2336,12 @@ describe('Tandy', () => {
     });
     it('Removes a token from a user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         const knex = server.knex();
@@ -2631,16 +2364,14 @@ describe('Tandy', () => {
     it('Generates an Objection error when removing a token from a user', async () => {
 
         const config = getOptions({
-            schwifty: {
-                migrateOnStart: false,
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
+            schwifty: { migrateOnStart: false }
         });
 
         const server = await getServer(config);
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
         await server.initialize();
 
         server.route({
@@ -2658,16 +2389,12 @@ describe('Tandy', () => {
     });
     it('Generates an Objection error when removing an existing token from a user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -2688,16 +2415,12 @@ describe('Tandy', () => {
     });
     it('Removes a token from a nonexistent user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -2717,16 +2440,12 @@ describe('Tandy', () => {
     });
     it('Removes a nonexistent token from a user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -2746,16 +2465,12 @@ describe('Tandy', () => {
     });
     it('Sets up a count on a non count route', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
 
         try {
@@ -2771,15 +2486,8 @@ describe('Tandy', () => {
     });
     it('Sets up a county route to ensure count is matched right.', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Counties
-                ]
-            }
-        });
-
-        const server = await getServer(config);
+        const server = await getServer(getOptions());
+        server.registerModel(TestModels.Counties);
         await server.initialize();
 
         try {
@@ -2795,16 +2503,12 @@ describe('Tandy', () => {
     });
     it('Deletes a specific user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
@@ -2828,15 +2532,11 @@ describe('Tandy', () => {
     it('Generates an Objection error when deleting a nonexistent model ', async () => {
 
         const config = getOptions({
-            schwifty: {
-                migrateOnStart: false,
-                models: [
-                    TestModels.Users
-                ]
-            }
+            schwifty: { migrateOnStart: false }
         });
 
         const server = await getServer(config);
+        server.registerModel(TestModels.Users);
         await server.initialize();
 
         server.route({
@@ -2855,16 +2555,12 @@ describe('Tandy', () => {
     });
     it('Deletes a nonexistent user', async () => {
 
-        const config = getOptions({
-            schwifty: {
-                models: [
-                    TestModels.Users,
-                    TestModels.Tokens
-                ]
-            }
-        });
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
 
-        const server = await getServer(config);
         await server.initialize();
         const knex = server.knex();
         await knex.seed.run({ directory: 'test/seeds' });
