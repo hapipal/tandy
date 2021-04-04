@@ -1,7 +1,7 @@
 'use strict';
 
-const Joi = require('@hapi/joi');
-const Model = require('schwifty').Model;
+const Joi = require('joi');
+const Model = require('@hapipal/schwifty').Model;
 
 //lowercase t to exercise tests
 module.exports = class tokens extends Model {
