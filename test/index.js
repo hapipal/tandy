@@ -1388,6 +1388,41 @@ describe('Tandy', () => {
         expect(result.tokens).to.be.an.array();
         expect(result.tokens.length).to.equal(1);
     });
+
+    it('Fetches tokens for a user, sorted by token id', async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users/{id}/tokens',
+            handler: { tandy: { sort: 'Tokens.temp DESC' } }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users/1/tokens'
+        };
+
+        const response = await server.inject(options);
+
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result.tokens).to.be.an.array();
+        expect(result.tokens.length).to.equal(2);
+        expect(result.tokens[0].temp).to.equal('text');
+    });
+
     it('Fetches limited number of tokens for a user using query param', async () => {
 
         const server = await getServer(getOptions());
