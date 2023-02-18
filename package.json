@@ -1,6 +1,6 @@
 {
   "name": "@hapipal/tandy",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "lib/index.js",
   "scripts": {
@@ -28,28 +28,27 @@
     "url": "https://github.com/hapipal/tandy/issues"
   },
   "dependencies": {
-    "@hapi/boom": "9.x.x",
-    "@hapi/call": "8.x.x",
-    "@hapi/hoek": "9.x.x",
-    "joi": "17.x.x",
+    "@hapi/boom": "^10.0.1",
+    "@hapi/call": "^9.0.1",
+    "@hapi/hoek": "^11.0.2",
+    "joi": "^17.7.1",
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
-    "@hapi/hapi": ">=19 <21",
-    "@hapipal/schwifty": "6.x.x"
+    "@hapi/hapi": ">=19 <22",
+    "@hapipal/schwifty": "^6.2.0"
   },
   "devDependencies": {
-    "@hapi/code": "8.x.x",
-    "@hapi/eslint-config-hapi": "13.x.x",
-    "@hapi/eslint-plugin-hapi": "4.x.x",
-    "@hapi/hapi": ">=20",
-    "@hapi/lab": "24.x.x",
-    "coveralls": "3.x.x",
-    "eslint": "7.x.x",
-    "knex": "0.95.4",
-    "objection": "2.x.x",
-    "@hapipal/schwifty": "6.x.x",
-    "sqlite3": "5.x.x"
+    "@hapi/code": "^9.0.3",
+    "@hapi/eslint-plugin": "^6.0.0",
+    "@hapi/hapi": ">=19 <22",
+    "@hapi/lab": "^25.1.2",
+    "coveralls": "^3.1.1",
+    "eslint": "^8.34.0",
+    "knex": "^2.4.2",
+    "objection": "^3.0.1",
+    "@hapipal/schwifty": "^6.2.0",
+    "sqlite3": "^5.1.4"
   },
   "homepage": "https://github.com/hapipal/tandy"
 }

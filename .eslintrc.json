@@ -1,6 +1,7 @@
 {
-  "extends": "@hapi/eslint-config-hapi",
+  "extends": "plugin:@hapi/module",
   "parserOptions": {
-      "ecmaVersion": 9
+    "ecmaVersion": 2020,
+    "sourceType": "script"
   }
 }
