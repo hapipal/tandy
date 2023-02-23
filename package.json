@@ -3,6 +3,9 @@
   "version": "3.1.0",
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "lib/index.js",
+  "engines": {
+    "node": ">=16"
+  },
   "scripts": {
     "test": "lab -a @hapi/code -L -t 100 -I '__core-js_shared__'",
     "coveralls": "lab -r lcov | coveralls",
