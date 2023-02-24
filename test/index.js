@@ -1283,7 +1283,7 @@ describe('Tandy', () => {
         expect(result[0]).to.be.an.object();
         expect(result[0].firstName).to.equal('a');
     });
-    it('Exctracts users by firstName = a using query param' , async () => {
+    it('Extracts users by firstName = a using query param' , async () => {
 
         const server = await getServer(getOptions());
         server.registerModel(TestModels.Users);
@@ -1318,6 +1318,72 @@ describe('Tandy', () => {
         expect(result.length).to.equal(2);
         expect(result[0]).to.be.an.object();
         expect(result[0].firstName).to.equal('a');
+    });
+    it('Attempts to add bad where query with valid json' , async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel(TestModels.Users);
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        where: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?where=%7B%20%22firetruck%22%3A%20%22a%22%20%7D'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(400);
+        expect(result.message).to.equal('Where query param must be a present in the model\'s Joi schema');
+    });
+    it('Attempts to add bad where query with invalid json' , async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel(TestModels.Users);
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        where: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?where=askdfaksfkjaskjkfjsjsk'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(400);
+        expect(result.message).to.equal('Unable to parse where query parameter');
     });
     it('Fetches limited number of users', async () => {
 
@@ -1356,6 +1422,235 @@ describe('Tandy', () => {
         expect(response.statusCode).to.equal(200);
         expect(result).to.be.an.array();
         expect(result.length).to.equal(1);
+    });
+    it('Attempts to sort by invalid key', async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: { limit: 1 } },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        sort: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?sort=asdf'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(400);
+        expect(result.message).to.equal('Sort query param must be a present in the model\'s Joi schema and sort order must be asc or desc');
+    });
+    it('Fetches users, sorted by id desc', async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        sort: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?sort="id" desc'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
+        expect(result[0].id).to.equal(4);
+
+    });
+    it('Fetches users with invalid sort order', async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        sort: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?sort="id" fire'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(400);
+        expect(result.message).to.equal('Sort query param must be a present in the model\'s Joi schema and sort order must be asc or desc');
+
+    });
+    it('Fetches users with invalid key and sort order', async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        sort: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?sort="blast" fire'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(400);
+        expect(result.message).to.equal('Sort query param must be a present in the model\'s Joi schema and sort order must be asc or desc');
+
+    });
+    it('Fetches users with invalid key and valid sort order', async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        sort: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?sort="blast" asc'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(400);
+        expect(result.message).to.equal('Sort query param must be a present in the model\'s Joi schema and sort order must be asc or desc');
+
+    });
+    it('Fetches users with too many sort elements', async () => {
+
+        const server = await getServer(getOptions());
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+
+        const knex = server.knex();
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} },
+            config: {
+                validate: {
+                    query: Joi.object().keys({
+                        sort: Joi.string().required()
+                    })
+                }
+            }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users?sort="id" ASC firetruck'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(400);
+        expect(result.message).to.equal('Sort query param must be a present in the model\'s Joi schema and sort order must be asc or desc');
+
     });
     it('Fetches limited number of tokens for a user', async () => {
 
