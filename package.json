@@ -38,7 +38,7 @@
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
-    "@hapi/hapi": ">=19 <22",
+    "@hapi/hapi": ">=20 <22",
     "@hapipal/schwifty": "^6.2.0"
   },
   "devDependencies": {
