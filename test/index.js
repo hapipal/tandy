@@ -955,6 +955,79 @@ describe('Tandy', () => {
         expect(result).to.be.an.array();
         expect(result.length).to.equal(4);
     });
+    it('Fetches all users and includes total count', async () => {
+
+        const server = await getServer(getOptions({
+            tandy: {
+                includeTotalCount: true
+            }
+        }));
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
+        expect(response.headers['content-range']).to.equal('users 0-4/4');
+    });
+    it('Fetches all users and includes total count, custom header name', async () => {
+
+        const server = await getServer(getOptions({
+            tandy: {
+                includeTotalCount: true,
+                totalCountHeader: 'x-count'
+            }
+        }));
+        server.registerModel([
+            TestModels.Users,
+            TestModels.Tokens
+        ]);
+
+        await server.initialize();
+        const knex = server.knex();
+        // const data = await knex.seed.run({ directory: 'test/seeds' });
+        await knex.seed.run({ directory: 'test/seeds' });
+
+        server.route({
+            method: 'GET',
+            path: '/users',
+            handler: { tandy: {} }
+        });
+
+        const options = {
+            method: 'GET',
+            url: '/users'
+        };
+
+        const response = await server.inject(options);
+        const result = response.result;
+
+        expect(response.statusCode).to.equal(200);
+        expect(result).to.be.an.array();
+        expect(result.length).to.equal(4);
+        expect(response.headers['x-count']).to.equal('4');
+    });
     it('Fetches all users without actAsUser', async () => {
 
         const config = getOptions({
