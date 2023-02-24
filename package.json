@@ -1,10 +1,13 @@
 {
   "name": "@hapipal/tandy",
-  "version": "3.1.1",
+  "version": "4.0.0",
   "description": "Auto-generated, RESTful, CRUDdy route handlers for Schwifty models in hapi",
   "main": "lib/index.js",
+  "engines": {
+    "node": ">=16"
+  },
   "scripts": {
-    "test": "lab -a @hapi/code -L -t 100 -I '__core-js_shared__'",
+    "test": "lab -a @hapi/code -L -t 100",
     "coveralls": "lab -r lcov | coveralls",
     "lint": "eslint ."
   },
@@ -35,7 +38,7 @@
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
-    "@hapi/hapi": ">=19 <22",
+    "@hapi/hapi": ">=20 <22",
     "@hapipal/schwifty": "^6.2.0"
   },
   "devDependencies": {
