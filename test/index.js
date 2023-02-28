@@ -1,11 +1,12 @@
 'use strict';
 
-const Lab = require('@hapi/lab');
+const _ = require('lodash');
+const Boom = require('@hapi/boom');
 const Hapi = require('@hapi/hapi');
 const Joi = require('joi');
-const Hoek = require('@hapi/hoek');
-const Boom = require('@hapi/boom');
+const Lab = require('@hapi/lab');
 const Schwifty = require('@hapipal/schwifty');
+
 const Tandy = require('..');
 const TestModels = require('./models');
 
@@ -36,7 +37,7 @@ describe('Tandy', () => {
             }
         };
 
-        return Hoek.applyToDefaults(options, extras || {});
+        return _.defaultsDeep({}, extras, options);
     };
 
     const scheme = (server, options) => {

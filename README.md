@@ -88,7 +88,7 @@ These options allow you to act on behalf of the authenticated user.  Typically t
 
  - `userIdProperty` (string, defaults `'id'`).  Applies to `findOne`, `find`, `create`, `update`, `destroy`, `add`, `remove`, and `populate`.
 
-    When `actAsUser` is `true` this option takes effect.  It defines a path into `Request.auth.credentials` to determine the acting user's id.  For example, if the credentials object equals `{user: {info: {id: 17}}}` then `'user.info.id'` would grab user id `17`.  See [`Hoek.reach`](https://github.com/hapijs/hoek#reachobj-chain-options), which is used to convert the string to a deep property in the hapi credentials object.
+    When `actAsUser` is `true` this option takes effect.  It defines a path into `Request.auth.credentials` to determine the acting user's id.  For example, if the credentials object equals `{user: {info: {id: 17}}}` then `'user.info.id'` would grab user id `17`.
 
  - `userUrlPrefix` (string, defaults `'/user'`).  Applies to `findOne`, `update`, `destroy`, `add`, `remove`, and `populate`.
 
